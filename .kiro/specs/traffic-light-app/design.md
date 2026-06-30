@@ -1,0 +1,464 @@
+# Design Document: Traffic Light App
+
+## Overview
+
+A full-screen Android app that simulates a realistic traffic light for kids playing with ride-on toys or scale model vehicles. This document covers architecture, component design, data models, and algorithms.
+
+## Architecture
+
+```mermaid
+graph TD
+    A[MainActivity] --> B[MenuScreen]
+    A --> C[TrafficLightScreen]
+    A --> D[SettingsScreen]
+    
+    B -->|Start Button| C
+    B -->|Options Button| D
+    D -->|Back| B
+    C -->|Back Button| B
+    
+    C --> E[TrafficLightController]
+    E --> F[TimerEngine]
+    E --> G[LightStateManager]
+    
+    D --> H[PreferencesRepository]
+    E --> H
+    
+    H --> I[SharedPreferences]
+```
+
+## Sequence Diagrams
+
+### Main Flow: Starting the Traffic Light
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant M as MenuScreen
+    participant P as PreferencesRepository
+    participant T as TrafficLightScreen
+    participant C as TrafficLightController
+    participant Timer as TimerEngine
+
+    U->>M: Tap "Start"
+    M->>T: Navigate to TrafficLightScreen
+    T->>P: Load timing preferences
+    P-->>T: {redDuration, greenDuration, yellowDuration}
+    T->>C: initialize(preferences)
+    C->>Timer: startCycle(RED, redDuration)
+    Timer-->>C: onTick(remainingMs)
+    Timer-->>C: onPhaseComplete()
+    C->>C: transition(RED → GREEN)
+    C-->>T: onLightStateChanged(GREEN, fade_in)
+    T->>T: animate light transition
+```
+
+### Settings Flow
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant M as MenuScreen
+    participant S as SettingsScreen
+    participant P as PreferencesRepository
+
+    U->>M: Tap "Options"
+    M->>S: Navigate to SettingsScreen
+    S->>P: Load current preferences
+    P-->>S: {redDuration: 10, greenDuration: 20, yellowDuration: 3}
+    U->>S: Adjust sliders
+    S->>P: save(newPreferences)
+    P-->>S: Saved
+    U->>S: Tap Back
+    S->>M: Navigate back
+```
+
+### Light Cycle State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> Red
+    Red --> Green: redDuration elapsed
+    Green --> Yellow: greenDuration elapsed
+    Yellow --> Red: yellowDuration elapsed
+    
+    Red --> [*]: User presses Back
+    Green --> [*]: User presses Back
+    Yellow --> [*]: User presses Back
+```
+
+## Components and Interfaces
+
+### Component 1: MenuScreen
+
+**Purpose**: Entry point of the app. Displays "Start" and "Options" buttons centered on screen.
+
+```pascal
+INTERFACE MenuScreen
+  PROCEDURE onStartPressed()
+    // Navigate to TrafficLightScreen
+  END PROCEDURE
+  
+  PROCEDURE onOptionsPressed()
+    // Navigate to SettingsScreen
+  END PROCEDURE
+END INTERFACE
+```
+
+**Responsibilities**:
+- Display two Material Design buttons vertically centered
+- Handle navigation to TrafficLightScreen and SettingsScreen
+- Display app title/branding above buttons
+
+### Component 2: TrafficLightScreen
+
+**Purpose**: Full-screen display showing the traffic light with animated transitions.
+
+```pascal
+INTERFACE TrafficLightScreen
+  PROCEDURE onCreate()
+    // Enter immersive full-screen mode
+    // Load preferences
+    // Initialize controller and start cycle
+  END PROCEDURE
+  
+  PROCEDURE onLightStateChanged(newState: LightState, animation: AnimationType)
+    // Update the rendered light display with fade animation
+  END PROCEDURE
+  
+  PROCEDURE onBackPressed()
+    // Stop the cycle, return to MenuScreen
+  END PROCEDURE
+  
+  PROCEDURE onDestroy()
+    // Clean up timers and resources
+  END PROCEDURE
+END INTERFACE
+```
+
+**Responsibilities**:
+- Render the traffic light housing and three light circles
+- Show active light at full brightness, inactive lights as dim circles
+- Animate transitions with incandescent-style fade out/in
+- Hide system bars for immersive full-screen experience
+- Handle back button to stop and return to menu
+
+### Component 3: TrafficLightController
+
+**Purpose**: Manages the state machine logic for light transitions and timing.
+
+```pascal
+INTERFACE TrafficLightController
+  PROCEDURE initialize(preferences: TimingPreferences)
+    // Set up timing values and start from RED state
+  END PROCEDURE
+  
+  PROCEDURE startCycle()
+    // Begin continuous cycling from current state
+  END PROCEDURE
+  
+  PROCEDURE stopCycle()
+    // Cancel all timers, reset state
+  END PROCEDURE
+  
+  FUNCTION getCurrentState(): LightState
+    // Return current light state
+  END FUNCTION
+  
+  EVENT onLightStateChanged(newState: LightState, animation: AnimationType)
+    // Fired when light transitions to a new state
+  END EVENT
+END INTERFACE
+```
+
+**Responsibilities**:
+- Implement state machine: RED → GREEN → YELLOW → RED (continuous)
+- Manage transition timing based on user preferences
+- Coordinate with TimerEngine for accurate countdowns
+- Notify listeners of state changes with animation type
+
+### Component 4: TimerEngine
+
+**Purpose**: Provides accurate countdown timing using Android's CountDownTimer or Handler-based approach.
+
+```pascal
+INTERFACE TimerEngine
+  PROCEDURE start(durationMs: Integer, onComplete: Callback)
+    // Start countdown for given duration
+  END PROCEDURE
+  
+  PROCEDURE cancel()
+    // Cancel current countdown
+  END PROCEDURE
+  
+  FUNCTION isRunning(): Boolean
+    // Return whether timer is actively counting
+  END FUNCTION
+END INTERFACE
+```
+
+**Responsibilities**:
+- Provide reliable millisecond-accurate timing
+- Handle lifecycle interruptions (app backgrounded)
+- Clean cancellation without memory leaks
+
+### Component 5: SettingsScreen
+
+**Purpose**: Allow users to adjust timing for each light phase.
+
+```pascal
+INTERFACE SettingsScreen
+  PROCEDURE onCreate()
+    // Load current preferences and display sliders
+  END PROCEDURE
+  
+  PROCEDURE onRedDurationChanged(seconds: Integer)
+    // Update red duration preference
+  END PROCEDURE
+  
+  PROCEDURE onGreenDurationChanged(seconds: Integer)
+    // Update green duration preference
+  END PROCEDURE
+  
+  PROCEDURE onYellowDurationChanged(seconds: Integer)
+    // Update yellow duration preference
+  END PROCEDURE
+  
+  PROCEDURE onResetDefaults()
+    // Reset all values to defaults
+  END PROCEDURE
+END INTERFACE
+```
+
+**Responsibilities**:
+- Display Material Design sliders for each light duration
+- Show current values as labels next to sliders
+- Save preferences immediately on change
+- Provide "Reset to Defaults" option
+
+### Component 6: PreferencesRepository
+
+**Purpose**: Abstraction layer over SharedPreferences for reading/writing timing settings.
+
+```pascal
+INTERFACE PreferencesRepository
+  FUNCTION getTimingPreferences(): TimingPreferences
+    // Read saved or default timing values
+  END FUNCTION
+  
+  PROCEDURE saveTimingPreferences(prefs: TimingPreferences)
+    // Persist timing values locally
+  END PROCEDURE
+  
+  PROCEDURE resetToDefaults()
+    // Clear saved values, revert to defaults
+  END PROCEDURE
+END INTERFACE
+```
+
+**Responsibilities**:
+- Read/write to Android SharedPreferences
+- Provide default values when no saved preferences exist
+- Validate values are within acceptable ranges
+
+## Data Models
+
+### Model 1: LightState
+
+```pascal
+ENUMERATION LightState
+  RED
+  YELLOW
+  GREEN
+END ENUMERATION
+```
+
+### Model 2: AnimationType
+
+```pascal
+ENUMERATION AnimationType
+  FADE_IN       // Light turning on (brightening)
+  FADE_OUT      // Light turning off (dimming like incandescent)
+  NONE          // Initial state, no animation
+END ENUMERATION
+```
+
+### Model 3: TimingPreferences
+
+```pascal
+STRUCTURE TimingPreferences
+  redDurationSeconds: Integer      // Default: 10, Range: 3-60
+  greenDurationSeconds: Integer    // Default: 20, Range: 3-60
+  yellowDurationSeconds: Integer   // Default: 3,  Range: 1-10
+END STRUCTURE
+```
+
+### Model 4: LightDisplayState
+
+```pascal
+STRUCTURE LightDisplayState
+  redBrightness: Float        // 0.0 (dim) to 1.0 (full)
+  yellowBrightness: Float     // 0.0 (dim) to 1.0 (full)
+  greenBrightness: Float      // 0.0 (dim) to 1.0 (full)
+END STRUCTURE
+
+CONSTANT DIM_BRIGHTNESS = 0.15
+CONSTANT FULL_BRIGHTNESS = 1.0
+```
+
+## Algorithmic Pseudocode
+
+### Traffic Light Cycle
+
+```pascal
+ALGORITHM trafficLightCycle(preferences)
+INPUT: preferences of type TimingPreferences
+OUTPUT: continuous cycle until stopped
+
+BEGIN
+  currentState ← RED
+  isRunning ← true
+  
+  NOTIFY onLightStateChanged(RED, NONE)
+  
+  WHILE isRunning DO
+    duration ← getDurationForState(currentState, preferences)
+    WAIT duration seconds
+    
+    IF NOT isRunning THEN EXIT WHILE END IF
+    
+    previousState ← currentState
+    currentState ← getNextState(currentState)
+    
+    NOTIFY onLightStateChanged(previousState, FADE_OUT)
+    WAIT 300 milliseconds
+    NOTIFY onLightStateChanged(currentState, FADE_IN)
+  END WHILE
+END
+```
+
+**Preconditions:** preferences contains valid timing values; listener is registered
+**Postconditions:** When isRunning becomes false, all timers are cancelled; no lingering callbacks
+**Loop Invariants:** currentState is always a valid LightState; isRunning only transitions true → false
+
+### State Transition
+
+```pascal
+ALGORITHM getNextState(currentState)
+BEGIN
+  IF currentState = RED THEN RETURN GREEN
+  ELSE IF currentState = GREEN THEN RETURN YELLOW
+  ELSE IF currentState = YELLOW THEN RETURN RED
+  END IF
+END
+```
+
+**Postconditions:** Pure function, deterministic, no side effects
+
+### Fade Animation
+
+```pascal
+ALGORITHM animateLightTransition(targetLight, direction, durationMs)
+BEGIN
+  IF direction = FADE_OUT THEN
+    startBrightness ← FULL_BRIGHTNESS
+    endBrightness ← DIM_BRIGHTNESS
+  ELSE
+    startBrightness ← DIM_BRIGHTNESS
+    endBrightness ← FULL_BRIGHTNESS
+  END IF
+  
+  elapsed ← 0
+  WHILE elapsed < durationMs DO
+    progress ← elapsed / durationMs
+    IF direction = FADE_OUT THEN
+      interpolated ← 1.0 - (1.0 - progress)^2
+    ELSE
+      interpolated ← progress^2
+    END IF
+    currentBrightness ← startBrightness + (endBrightness - startBrightness) * interpolated
+    SET targetLight.brightness TO currentBrightness
+    RENDER frame
+    elapsed ← elapsed + FRAME_INTERVAL
+  END WHILE
+  SET targetLight.brightness TO endBrightness
+END
+```
+
+**Loop Invariants:** currentBrightness always in [DIM_BRIGHTNESS, FULL_BRIGHTNESS]; elapsed monotonically increases
+
+### Preferences Validation
+
+```pascal
+ALGORITHM validateAndClamp(preferences)
+BEGIN
+  validPreferences.redDurationSeconds ← CLAMP(preferences.redDurationSeconds, 3, 60)
+  validPreferences.greenDurationSeconds ← CLAMP(preferences.greenDurationSeconds, 3, 60)
+  validPreferences.yellowDurationSeconds ← CLAMP(preferences.yellowDurationSeconds, 1, 10)
+  RETURN validPreferences
+END
+
+FUNCTION CLAMP(value, min, max)
+  IF value < min THEN RETURN min
+  ELSE IF value > max THEN RETURN max
+  ELSE RETURN value
+  END IF
+END FUNCTION
+```
+
+**Postconditions:** All returned values within valid ranges; values already in range are unchanged
+
+## Key Functions
+
+### enterImmersiveMode()
+
+```pascal
+PROCEDURE enterImmersiveMode()
+  // Hide system bars (status bar, navigation bar)
+  // Set window flags for full-screen immersive sticky mode
+  // Lock orientation to portrait
+END PROCEDURE
+```
+
+**Preconditions:** Activity is in RESUMED state; window is available
+**Postconditions:** System bars hidden; orientation locked to portrait
+
+### renderTrafficLight(displayState)
+
+```pascal
+PROCEDURE renderTrafficLight(displayState: LightDisplayState)
+  // Draw housing (rounded rectangle)
+  // Draw three circles vertically: red (top), yellow (middle), green (bottom)
+  // Each circle color = blend(dimColor, activeColor, brightness)
+END PROCEDURE
+```
+
+**Preconditions:** Canvas is measured and laid out; brightness values in [0.0, 1.0]
+**Postconditions:** Housing centered horizontally; lights evenly spaced vertically
+
+### stopAndNavigateBack()
+
+```pascal
+PROCEDURE stopAndNavigateBack()
+  controller.stopCycle()
+  exitImmersiveMode()
+  navigateTo(MenuScreen)
+END PROCEDURE
+```
+
+**Preconditions:** TrafficLightScreen is current; controller exists
+**Postconditions:** All timers cancelled; system bars restored; MenuScreen displayed; no memory leaks
+
+## Error Handling
+
+### Timer Interruption (App Backgrounded)
+**Condition**: User switches away while running
+**Recovery**: On onResume(), verify timer is running. If not, restart cycle from RED.
+
+### Invalid Preference Values
+**Condition**: SharedPreferences contains corrupted or out-of-range values
+**Recovery**: Run validateAndClamp() on load; use clamped values silently.
+
+### Render Failure
+**Condition**: Custom view fails to draw
+**Recovery**: Fall back to simple colored backgrounds; automatic on next draw cycle.
