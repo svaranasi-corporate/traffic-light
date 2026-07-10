@@ -40,7 +40,7 @@ brew install --cask temurin@17
 sudo apt install openjdk-17-jdk
 ```
 
-### 3. Android SDK
+### 3. Android SDK 
 
 The SDK is installed and managed through Android Studio's SDK Manager (`Tools → SDK Manager`).
 
