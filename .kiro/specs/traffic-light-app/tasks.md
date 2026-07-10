@@ -114,6 +114,9 @@ Implement the custom Canvas composable that draws the housing and three light ci
 - [ ] Circles evenly spaced within the housing
 - [ ] Active light rendered at brightness 1.0; inactive lights at 0.15 (FR-2.5)
 - [ ] Color rendered as `blend(#2A2A2A, activeColor, brightness)` per ui-guidelines.md
+- [ ] Each light circle has a visor (cowl/hood) rendered above it — a curved shade shape drawn programmatically using Canvas
+- [ ] When a light is active, the underside of its visor shows a reflected glow blended from the active light's color at reduced opacity (simulating light bouncing off the shade)
+- [ ] When a light is inactive, the visor underside shows no glow
 - [ ] No bitmaps — all drawing programmatic using Canvas
 - [ ] Housing and circles scale proportionally across different screen sizes
 
@@ -167,3 +170,24 @@ Write the full test suite covering unit, property-based, and integration tests.
 - [ ] Integration test: settings roundtrip — save values, relaunch, verify loaded (FR-7.1, FR-7.2)
 - [ ] Integration test: back button exits cleanly from all three light states (FR-8.1–8.3)
 - [ ] Integration test: immersive mode active on TrafficLightScreen, restored on exit (FR-2.1, FR-8.2)
+
+---
+
+## Task 11: Manual Mode
+*Satisfies: meeting notes — 10 July 2026*
+
+Add a manual mode that lets the user disable the automatic timer and tap each light directly to activate it. This covers a Settings toggle, persistence of the mode preference, controller behaviour changes, and tap handling on the Traffic Light Screen.
+
+### Acceptance Criteria
+- [ ] `TimingPreferences` extended with a `manualMode: Boolean` field (default: `false`)
+- [ ] `PreferencesRepository` reads and writes `manualMode` to SharedPreferences
+- [ ] Settings Screen includes a clearly labelled toggle (switch) for "Manual mode"; its state is persisted immediately on change
+- [ ] When `manualMode` is `false`, the app behaves exactly as before (automatic cycle)
+- [ ] When `manualMode` is `true`, `TrafficLightController` does not start the automatic timer cycle on entry
+- [ ] In manual mode, each of the three light areas on the Traffic Light Screen is individually tappable
+- [ ] Tapping a light in manual mode activates that light (full brightness) and deactivates the other two (dim), using the same fade transition animation as the automatic cycle
+- [ ] Only one light can be active at a time in manual mode; tapping the already-active light has no effect
+- [ ] Manual mode initial state on screen entry: RED light active (same as automatic mode)
+- [ ] Back button behaviour is unchanged in manual mode: stop, exit immersive, return to Menu
+- [ ] `stopCycle()` on the controller is a no-op (or safe to call) when in manual mode — no crashes
+- [ ] Unit tests: controller does not fire timer callbacks when manual mode is active; tapping each light produces correct state
