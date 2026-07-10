@@ -13,6 +13,16 @@
       },
       "disabled": false,
       "autoApprove": ["*"]
+    },
+    "fetch": {
+      "command": "uvx",
+      "args": ["mcp-server-fetch@latest"],
+      "env": {
+        "PATH": "/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:${HOME}/.local/bin"
+      },
+      "disabled": false,
+      "autoApprove": ["fetch"],
+      "description": "Fetches live web pages as clean markdown. Used to pull current Android developer reference docs (developer.android.com), Jetpack Compose API pages, and Material 3 component specs by exact URL — ensuring API signatures and behavior are up to date rather than relying on training data."
     }
   }
 }

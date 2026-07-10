@@ -1,0 +1,54 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+.VolumeIcon.icns
+
+# Android / Gradle
+.gradle/
+build/
+local.properties
+*.iml
+*.apk
+*.aab
+*.ap_
+
+# Android Studio / IntelliJ IDEA
+.idea/
+*.iws
+*.ipr
+out/
+captures/
+.navigation/
+*.hprof
+
+# Keystore files (never commit signing keys)
+*.jks
+*.keystore
+
+# Kotlin compilation artifacts
+*.class
+
+# ProGuard / R8
+proguard-dict.txt
+mapping.txt
+seeds.txt
+usage.txt
+
+# Kiro
+.kiro/settings/
+
+# Navigation editor generated files
+app/src/main/res/navigation/
+
+# Lint reports
+lint/
+*.xml.lint
+
+# Test results
+test-results/
