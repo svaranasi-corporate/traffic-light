@@ -22,8 +22,8 @@ import com.trafficlight.model.LightState
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-private const val DIM_BRIGHTNESS = 0.15f
-private const val FULL_BRIGHTNESS = 1.0f
+// DIM_BRIGHTNESS and FULL_BRIGHTNESS are defined in BrightnessAnimator.kt and
+// re-used here — they are package-level constants in the same package.
 
 private val COLOR_RED_ACTIVE = Color(0xFFFF0000)
 private val COLOR_YELLOW_ACTIVE = Color(0xFFFFBF00)
