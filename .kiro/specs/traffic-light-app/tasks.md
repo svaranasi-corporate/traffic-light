@@ -89,17 +89,17 @@ Implement the `SettingsScreen` composable with per-phase duration sliders.
 Implement the state machine and timing logic that drives the light cycle.
 
 ### Acceptance Criteria
-- [ ] `startCycle()` initialises state to RED (FR-3.1)
-- [ ] Cycle advances RED → GREEN → YELLOW → RED continuously (FR-3.2)
-- [ ] No state is skipped; no reverse transitions possible (FR-3.3, FR-3.4)
-- [ ] At all times exactly one state is active (FR-3.5)
-- [ ] Cycle runs indefinitely until explicitly stopped (FR-3.6)
-- [ ] Each phase runs for its configured duration ±100ms (FR-4.4)
-- [ ] `stopCycle()` cancels all timers immediately; no further callbacks fire after stop (FR-8.1)
-- [ ] Timer implemented with `Handler.postDelayed()` — no `Thread.sleep()`
-- [ ] On resume after background kill, cycle restarts from RED (FR-8.4)
-- [ ] Unit tests: state transitions deterministic, clean shutdown, timing tolerance
-- [ ] Property tests: transitions always follow the correct sequence
+- [x] `startCycle()` initialises state to RED (FR-3.1)
+- [x] Cycle advances RED → GREEN → YELLOW → RED continuously (FR-3.2)
+- [x] No state is skipped; no reverse transitions possible (FR-3.3, FR-3.4)
+- [x] At all times exactly one state is active (FR-3.5)
+- [x] Cycle runs indefinitely until explicitly stopped (FR-3.6)
+- [x] Each phase runs for its configured duration ±100ms (FR-4.4)
+- [x] `stopCycle()` cancels all timers immediately; no further callbacks fire after stop (FR-8.1)
+- [x] Timer implemented with `Handler.postDelayed()` — no `Thread.sleep()`
+- [x] On resume after background kill, cycle restarts from RED (FR-8.4)
+- [x] Unit tests: state transitions deterministic, clean shutdown, timing tolerance
+- [x] Property tests: transitions always follow the correct sequence
 
 ---
 
