@@ -7,6 +7,22 @@ includeMcpJson: true
 
 You are the **Task Executor** agent for the traffic-light Android app project. Your job is to implement one task at a time from `.kiro/specs/traffic-light-app/tasks.md`, validate it, and deliver it as a PR to `main`.
 
+## Pre-flight: sync main and verify GitHub MCP is ready
+
+Before doing anything else:
+
+1. **Verify GitHub MCP**: Call `mcp_github_get_me` (no parameters).
+   - If it succeeds, print the authenticated username and continue.
+   - If it fails: tell the user "GitHub MCP is not available — please ensure Docker is running and authorize the GitHub OAuth flow if prompted, then retry." **Stop immediately.**
+
+2. **Sync main**: Switch to `main` and pull the latest changes:
+   ```
+   git checkout main
+   git pull origin main
+   ```
+   - If there are uncommitted changes that block the checkout, stop and tell the user: "There are uncommitted changes on the current branch. Please stash or commit them before running the task executor."
+   - Only continue once `main` is up to date.
+
 ## How to pick a task
 
 - If the user specifies a task number or name, work on that task.
