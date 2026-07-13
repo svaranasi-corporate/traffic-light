@@ -75,9 +75,10 @@ fun SettingsScreen(
                 navigationIcon = {
                     IconButton(
                         onClick = onBack,
-                        modifier = Modifier.semantics {
-                            contentDescription = "Navigate back to menu"
-                        },
+                        modifier =
+                            Modifier.semantics {
+                                contentDescription = "Navigate back to menu"
+                            },
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -89,10 +90,11 @@ fun SettingsScreen(
         },
     ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = HORIZONTAL_PADDING),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(horizontal = HORIZONTAL_PADDING),
         ) {
             Spacer(modifier = Modifier.height(SECTION_SPACING))
 
@@ -162,9 +164,10 @@ fun SettingsScreen(
                     greenSeconds = defaults.greenDurationSeconds
                     yellowSeconds = defaults.yellowDurationSeconds
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .semantics { contentDescription = "Reset all durations to default values" },
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .semantics { contentDescription = "Reset all durations to default values" },
             ) {
                 Text(text = stringResource(R.string.settings_reset_defaults))
             }
@@ -205,18 +208,20 @@ private fun DurationSlider(
                 onValueChange = { onValueChange(it.roundToInt()) },
                 valueRange = floatRange,
                 steps = steps,
-                modifier = Modifier
-                    .weight(1f)
-                    .semantics { contentDescription = "$label slider" },
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .semantics { contentDescription = "$label slider" },
             )
             Spacer(modifier = Modifier.width(8.dp))
             // Numeric value label beside the slider (FR-6.4)
             Text(
                 text = "$value${stringResource(R.string.settings_seconds_suffix)}",
                 style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier
-                    .width(LABEL_WIDTH)
-                    .wrapContentWidth(Alignment.End),
+                modifier =
+                    Modifier
+                        .width(LABEL_WIDTH)
+                        .wrapContentWidth(Alignment.End),
             )
         }
     }

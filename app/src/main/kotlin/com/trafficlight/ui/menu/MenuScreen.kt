@@ -50,9 +50,10 @@ fun MenuScreen(
         // Start button (FR-1.3)
         Button(
             onClick = onStartClick,
-            modifier = Modifier
-                .width(BUTTON_WIDTH)
-                .semantics { contentDescription = "Start traffic light" },
+            modifier =
+                Modifier
+                    .width(BUTTON_WIDTH)
+                    .semantics { contentDescription = "Start traffic light" },
         ) {
             Text(text = stringResource(R.string.menu_start))
         }
@@ -62,9 +63,10 @@ fun MenuScreen(
         // Options button (FR-1.4)
         Button(
             onClick = onOptionsClick,
-            modifier = Modifier
-                .width(BUTTON_WIDTH)
-                .semantics { contentDescription = "Open settings" },
+            modifier =
+                Modifier
+                    .width(BUTTON_WIDTH)
+                    .semantics { contentDescription = "Open settings" },
         ) {
             Text(text = stringResource(R.string.menu_options))
         }

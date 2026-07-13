@@ -53,7 +53,7 @@ class PreferencesRepositoryTest : DescribeSpec({
                     redDurationSeconds = 15,
                     greenDurationSeconds = 25,
                     yellowDurationSeconds = 5,
-                )
+                ),
             )
             val loaded = repo.getTimingPreferences()
             loaded.redDurationSeconds shouldBe 15
@@ -111,7 +111,7 @@ class PreferencesRepositoryTest : DescribeSpec({
                     redDurationSeconds = 60,
                     greenDurationSeconds = 60,
                     yellowDurationSeconds = 10,
-                )
+                ),
             )
             repo.resetToDefaults()
             repo.getTimingPreferences() shouldBe TimingPreferences()

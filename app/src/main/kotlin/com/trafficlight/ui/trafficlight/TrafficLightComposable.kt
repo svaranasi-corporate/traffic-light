@@ -11,64 +11,127 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.tooling.preview.Preview
 import com.trafficlight.model.LightState
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
-// ── Constants ────────────────────────────────────────────────────────────────
+// ── Housing constants ─────────────────────────────────────────────────────────
 
-// DIM_BRIGHTNESS and FULL_BRIGHTNESS are defined in BrightnessAnimator.kt and
-// re-used here — they are package-level constants in the same package.
+/** Background fill — solid near-black. */
+private val COLOR_BACKGROUND = Color(0xFF111111)
 
-private val COLOR_RED_ACTIVE = Color(0xFFFF0000)
-private val COLOR_YELLOW_ACTIVE = Color(0xFFFFBF00)
-private val COLOR_GREEN_ACTIVE = Color(0xFF00CC00)
-private val COLOR_HOUSING = Color(0xFFDAA520)
-private val COLOR_DIM = Color(0xFF2A2A2A)
-private val COLOR_BACKGROUND = Color(0xFF1A1A1A)
-private val COLOR_VISOR = Color(0xFF111111)
+/** Housing body — matte traffic-signal yellow. */
+private val COLOR_HOUSING = Color(0xFFD9A520)
 
-/** Fraction of canvas width occupied by the housing. */
-private const val HOUSING_WIDTH_FRACTION = 0.30f
-
-/** Fraction of canvas height occupied by the housing. */
-private const val HOUSING_HEIGHT_FRACTION = 0.80f
-
-/** Circle radius as a fraction of housing width. */
-private const val CIRCLE_RADIUS_FRACTION = 0.35f
-
-/** Corner radius of the housing as a fraction of housing width. */
-private const val HOUSING_CORNER_FRACTION = 0.12f
-
-/** Visor height as a fraction of the circle radius. */
-private const val VISOR_HEIGHT_FRACTION = 0.55f
-
-/** Visor half-width as a fraction of the circle radius. */
-private const val VISOR_WIDTH_FRACTION = 1.25f
-
-/** Alpha for the reflected glow on the visor underside when a light is active. */
-private const val VISOR_GLOW_ALPHA = 0.35f
-
-// ── Public API ───────────────────────────────────────────────────────────────
+/** Housing corner radius fraction of housing width (maps to ~16 px on typical screen). */
+private const val HOUSING_CORNER_FRACTION = 0.085f
 
 /**
- * Draws a complete traffic light: goldenrod housing, three blended light circles
- * (red/yellow/green), and a curved visor above each light that shows a reflected
- * glow when the corresponding light is active.
+ * The housing occupies this fraction of the canvas width.
+ * Aspect ratio 1 : 3.05 is enforced by the aspectRatio modifier in the composable.
+ */
+@Suppress("unused")
+private const val HOUSING_WIDTH_FRACTION = 1.0f
+
+/** Width-to-height ratio: 1 : 3.05 */
+private const val HOUSING_ASPECT = 1f / 3.05f
+
+// ── Module geometry constants ─────────────────────────────────────────────────
+
+/** Lens radius as a fraction of the housing width (80% diameter → radius 40%). */
+private const val LENS_RADIUS_FRACTION = 0.40f
+
+/** Gap between adjacent module centres as a fraction of housing width. */
+private const val MODULE_GAP_FRACTION = 0.04f // ~8 px gap in the rendered gap area
+
+/** Bezel ring width as a fraction of lens radius (maps to ~14 px). */
+private const val BEZEL_WIDTH_FRACTION = 0.14f
+
+// ── Visor constants ───────────────────────────────────────────────────────────
+
+/** Visor depth (extension outward) as a fraction of the lens diameter. */
+private const val VISOR_DEPTH_FRACTION = 0.42f
+
+/** Visor half-width as a fraction of the lens radius. */
+private const val VISOR_HALF_WIDTH_FRACTION = 1.30f
+
+private val COLOR_VISOR = Color(0xFF0D0D0D)
+private val COLOR_VISOR_INNER = Color(0xFF1A1A1A)
+
+// ── Incandescent color model ──────────────────────────────────────────────────
+
+/**
+ * Per-state color stops for the active incandescent glow.
+ * Order: [center, middle, edge].
+ */
+private val ACTIVE_COLORS: Map<LightState, Triple<Color, Color, Color>> =
+    mapOf(
+        LightState.RED to Triple(Color(0xFFFFEFB0), Color(0xFFFF3030), Color(0xFFA00000)),
+        LightState.YELLOW to Triple(Color(0xFFFFF3B0), Color(0xFFFFBF1C), Color(0xFFA65B00)),
+        LightState.GREEN to Triple(Color(0xFFD7FFF0), Color(0xFF2BE060), Color(0xFF007B2D)),
+    )
+
+/** Solid dim colors — no glow, no gradient. */
+private val INACTIVE_COLORS: Map<LightState, Color> =
+    mapOf(
+        LightState.RED to Color(0xFF3C0D0D),
+        LightState.YELLOW to Color(0xFF49380F),
+        LightState.GREEN to Color(0xFF14361C),
+    )
+
+/** Reflector backing — mirrored silver. */
+private val COLOR_REFLECTOR_CENTER = Color(0xFF555555)
+private val COLOR_REFLECTOR_EDGE = Color(0xFF222222)
+
+/** Bezel / module body. */
+private val COLOR_BEZEL = Color(0xFF111111)
+
+/** Glass highlight — soft white. */
+private val COLOR_GLASS_HIGHLIGHT = Color(0x33FFFFFF)
+
+// ── Animation keyframe constants ──────────────────────────────────────────────
+
+/** Turn-on brightness ramp keyframes: time-fraction → brightness-fraction pairs. */
+val TURN_ON_KEYFRAMES = listOf(0f to 0f, 0.08f to 0.10f, 0.35f to 0.40f, 0.65f to 0.75f, 1f to 1f)
+
+/** Turn-off brightness ramp keyframes. */
+val TURN_OFF_KEYFRAMES = listOf(0f to 1f, 0.25f to 0.60f, 0.55f to 0.25f, 0.80f to 0.05f, 1f to 0f)
+
+/** Turn-on total duration in ms (mid-range of 120–180 ms spec). */
+const val TURN_ON_DURATION_MS = 150L
+
+/** Turn-off total duration in ms. */
+const val TURN_OFF_DURATION_MS = 150L
+
+// ── Public API ────────────────────────────────────────────────────────────────
+
+/**
+ * Draws a physically accurate North American incandescent traffic signal.
  *
- * All drawing is programmatic — no bitmaps.
+ * Rendering layers per module (bottom → top):
+ *   1. Housing backing
+ *   2. Visor (cowl)
+ *   3. Bezel ring
+ *   4. Reflector
+ *   5. Fresnel lens texture
+ *   6. Incandescent glow (brightness-modulated radial gradient)
+ *   7. Glass highlight
  *
- * @param activeState   Which light is currently "on".
- * @param brightnesses  Per-light brightness values in [0.15, 1.0].
- *                      Defaults to FULL for [activeState] and DIM for the others,
- *                      which is the correct steady-state. Pass animated values
- *                      from Task 8 for smooth transitions.
- * @param modifier      Compose modifier forwarded to the containing [Box].
+ * All drawing is programmatic — no bitmaps, no external assets.
+ *
+ * @param activeState  Which light is currently "on".
+ * @param brightnesses Per-light brightness values in [0.15, 1.0].
+ * @param modifier     Compose modifier forwarded to the containing [Box].
  */
 @Suppress("FunctionName")
 @Composable
@@ -84,150 +147,489 @@ fun TrafficLightComposable(
                 .background(COLOR_BACKGROUND),
         contentAlignment = Alignment.Center,
     ) {
+        // Canvas sized to a 1:3.05 housing within 60% of screen width
         Canvas(
             modifier =
                 Modifier
-                    .fillMaxWidth(HOUSING_WIDTH_FRACTION / 0.30f)
-                    .aspectRatio(HOUSING_WIDTH_FRACTION / HOUSING_HEIGHT_FRACTION),
+                    .fillMaxWidth(0.60f)
+                    .aspectRatio(HOUSING_ASPECT),
         ) {
-            drawTrafficLight(brightnesses)
+            drawIncandescentSignal(brightnesses)
         }
     }
 }
 
-// ── Drawing helpers ───────────────────────────────────────────────────────────
+// ── Top-level signal drawing ──────────────────────────────────────────────────
 
-private fun DrawScope.drawTrafficLight(brightnesses: Map<LightState, Float>) {
-    val canvasW = size.width
-    val canvasH = size.height
+private fun DrawScope.drawIncandescentSignal(brightnesses: Map<LightState, Float>) {
+    val w = size.width
+    val h = size.height
+    val cornerRadius = w * HOUSING_CORNER_FRACTION
 
-    val housingWidth = canvasW
-    val housingHeight = canvasH
-    val housingLeft = 0f
-    val housingTop = 0f
-    val cornerRadius = housingWidth * HOUSING_CORNER_FRACTION
+    // ── 1. Housing body ───────────────────────────────────────────────────────
+    drawHousing(w, h, cornerRadius)
 
-    // ── Housing ──────────────────────────────────────────────────────────────
-    drawRoundRect(
-        color = COLOR_HOUSING,
-        topLeft = Offset(housingLeft, housingTop),
-        size = Size(housingWidth, housingHeight),
-        cornerRadius = CornerRadius(cornerRadius, cornerRadius),
-    )
+    // ── 2. Module geometry ───────────────────────────────────────────────────
+    val lensRadius = w * LENS_RADIUS_FRACTION
+    val centerX = w / 2f
 
-    // ── Circle geometry ───────────────────────────────────────────────────────
-    val circleRadius = housingWidth * CIRCLE_RADIUS_FRACTION
-    val circleCenterX = housingLeft + housingWidth / 2f
+    // Distribute three module centres evenly with a gap between them.
+    // Gap in pixels (we use a fraction of lens diameter for the inter-module spacing).
+    val gapPx = lensRadius * 2f * MODULE_GAP_FRACTION * 2f + lensRadius * 0.12f // ~8–10 px practical gap
+    val totalContentHeight = lensRadius * 6f + gapPx * 2f
+    val startY = (h - totalContentHeight) / 2f + lensRadius
 
-    // Divide housing into 3 equal vertical slots and centre a circle in each
-    val slotHeight = housingHeight / 3f
     val lightOrdering = listOf(LightState.RED, LightState.YELLOW, LightState.GREEN)
-
     lightOrdering.forEachIndexed { index, state ->
-        val slotCenterY = housingTop + slotHeight * index + slotHeight / 2f
+        val centerY = startY + index * (lensRadius * 2f + gapPx)
         val brightness = brightnesses[state] ?: DIM_BRIGHTNESS
-        val activeColor = activeColorFor(state)
-        val blendedColor = lerp(COLOR_DIM, activeColor, brightness)
-
-        // ── Visor (drawn first so the circle renders on top) ─────────────────
-        drawVisor(
-            centerX = circleCenterX,
-            centerY = slotCenterY,
-            circleRadius = circleRadius,
-            activeColor = activeColor,
+        drawSignalModule(
+            centerX = centerX,
+            centerY = centerY,
+            lensRadius = lensRadius,
+            state = state,
             brightness = brightness,
         )
+    }
 
-        // ── Light circle ─────────────────────────────────────────────────────
-        drawCircle(
-            color = blendedColor,
-            radius = circleRadius,
-            center = Offset(circleCenterX, slotCenterY),
-        )
+    // ── Inter-module gap shadow ───────────────────────────────────────────────
+    lightOrdering.forEachIndexed { index, _ ->
+        if (index < 2) {
+            val topModuleCenterY = startY + index * (lensRadius * 2f + gapPx)
+            val gapTop = topModuleCenterY + lensRadius
+            val gapBottom = gapTop + gapPx
+            drawRect(
+                brush =
+                    Brush.verticalGradient(
+                        colors = listOf(Color(0x66000000), Color.Transparent, Color(0x66000000)),
+                        startY = gapTop,
+                        endY = gapBottom,
+                    ),
+                topLeft = Offset(0f, gapTop),
+                size = Size(w, gapPx),
+            )
+        }
     }
 }
 
+// ── Housing ───────────────────────────────────────────────────────────────────
+
+private fun DrawScope.drawHousing(
+    w: Float,
+    h: Float,
+    cornerRadius: Float,
+) {
+    val cr = CornerRadius(cornerRadius, cornerRadius)
+
+    // Main housing body
+    drawRoundRect(
+        color = COLOR_HOUSING,
+        topLeft = Offset(0f, 0f),
+        size = Size(w, h),
+        cornerRadius = cr,
+    )
+
+    // Subtle matte texture: faint top highlight fading to a subtle bottom shadow
+    val housingTopHighlight = Color(0x18FFFFFF)
+    val housingBottomShadow = Color(0x22000000)
+    drawRoundRect(
+        brush =
+            Brush.verticalGradient(
+                colors =
+                    listOf(
+                        housingTopHighlight,
+                        Color.Transparent,
+                        housingBottomShadow,
+                    ),
+            ),
+        topLeft = Offset(0f, 0f),
+        size = Size(w, h),
+        cornerRadius = cr,
+    )
+
+    // Housing edge shadow (inner border darkness to give depth at edges)
+    drawRoundRect(
+        brush =
+            Brush.horizontalGradient(
+                colors =
+                    listOf(
+                        Color(0x44000000),
+                        Color.Transparent,
+                        Color.Transparent,
+                        Color(0x44000000),
+                    ),
+            ),
+        topLeft = Offset(0f, 0f),
+        size = Size(w, h),
+        cornerRadius = cr,
+    )
+}
+
+// ── Signal module ─────────────────────────────────────────────────────────────
+
 /**
- * Draws a visor (cowl/hood) above [centerY] using a curved path, plus an optional
- * reflected-glow arc on the visor underside when [brightness] is meaningfully above dim.
+ * Draws one complete signal module at ([centerX], [centerY]) with the given [lensRadius].
+ *
+ * Layer order (back → front):
+ *   visor → bezel shadow → bezel ring → reflector → Fresnel lens → incandescent glow → glass highlight
  */
+private fun DrawScope.drawSignalModule(
+    centerX: Float,
+    centerY: Float,
+    lensRadius: Float,
+    state: LightState,
+    brightness: Float,
+) {
+    val bezelWidth = lensRadius * BEZEL_WIDTH_FRACTION
+
+    // Layer 1: Visor (drawn behind bezel/lens so it appears to overhang)
+    drawVisor(centerX, centerY, lensRadius)
+
+    // Layer 2: Bezel + ambient occlusion shadow
+    drawBezel(centerX, centerY, lensRadius, bezelWidth)
+
+    // Layer 3: Reflector backing (inside the bezel)
+    drawReflector(centerX, centerY, lensRadius - bezelWidth)
+
+    // Layer 4: Fresnel lens texture
+    drawFresnelLens(centerX, centerY, lensRadius - bezelWidth, state, brightness)
+
+    // Layer 5: Incandescent glow (brightness-modulated)
+    drawIncandescentGlow(centerX, centerY, lensRadius - bezelWidth, state, brightness)
+
+    // Layer 6: Glass highlight (upper-left convex reflection)
+    drawGlassHighlight(centerX, centerY, lensRadius - bezelWidth)
+
+    // Layer 7: Visor shadow cast over upper portion of lens
+    drawVisorShadow(centerX, centerY, lensRadius)
+}
+
+// ── Visor ─────────────────────────────────────────────────────────────────────
+
 private fun DrawScope.drawVisor(
     centerX: Float,
     centerY: Float,
-    circleRadius: Float,
-    activeColor: Color,
-    brightness: Float,
+    lensRadius: Float,
 ) {
-    val visorHalfWidth = circleRadius * VISOR_WIDTH_FRACTION
-    val visorHeight = circleRadius * VISOR_HEIGHT_FRACTION
+    val visorDepth = lensRadius * 2f * VISOR_DEPTH_FRACTION
+    val visorHalfWidth = lensRadius * VISOR_HALF_WIDTH_FRACTION
 
-    // Visor top edge sits just above the circle's top
-    val visorBottom = centerY - circleRadius * 0.85f
-    val visorTop = visorBottom - visorHeight
+    // Visor top sits above the lens top; bottom overlaps lens top slightly
+    val visorBottom = centerY - lensRadius * 0.75f
+    val visorTop = visorBottom - visorDepth
 
-    val visorLeft = centerX - visorHalfWidth
-    val visorRight = centerX + visorHalfWidth
+    val left = centerX - visorHalfWidth
+    val right = centerX + visorHalfWidth
 
-    // Build a curved visor shape: flat on top, curved (concave) on the underside
-    val visorPath =
+    // Outer visor shape — thick curved cowl
+    val outerPath =
         Path().apply {
-            moveTo(visorLeft, visorBottom)
-            // curved underside — a shallow upward arc
-            quadraticBezierTo(
-                centerX,
-                visorTop + visorHeight * 0.3f,
-                visorRight,
-                visorBottom,
-            )
-            // flat top edge connecting right side back to left
-            lineTo(visorRight, visorTop)
-            lineTo(visorLeft, visorTop)
+            moveTo(left, visorBottom)
+            // curved underside (concave)
+            quadraticBezierTo(centerX, visorTop + visorDepth * 0.40f, right, visorBottom)
+            lineTo(right, visorTop)
+            lineTo(left, visorTop)
             close()
         }
+    drawPath(path = outerPath, color = COLOR_VISOR)
 
-    drawPath(path = visorPath, color = COLOR_VISOR)
-
-    // ── Reflected glow on visor underside ─────────────────────────────────
-    if (brightness > DIM_BRIGHTNESS + 0.01f) {
-        // How bright is the glow — scales linearly with brightness above dim
-        val glowFraction = (brightness - DIM_BRIGHTNESS) / (FULL_BRIGHTNESS - DIM_BRIGHTNESS)
-        val glowAlpha = VISOR_GLOW_ALPHA * glowFraction
-        val glowColor = activeColor.copy(alpha = glowAlpha)
-
-        // Draw a thin oval arc hugging the underside curve of the visor
-        val glowOvalLeft = centerX - visorHalfWidth * 0.8f
-        val glowOvalRight = centerX + visorHalfWidth * 0.8f
-        val glowOvalTop = visorBottom - visorHeight * 0.35f
-        val glowOvalBottom = visorBottom + visorHeight * 0.15f
-
-        val glowRect =
-            Rect(
-                left = glowOvalLeft,
-                top = glowOvalTop,
-                right = glowOvalRight,
-                bottom = glowOvalBottom,
+    // Inner cavity (lighter to suggest hollow interior)
+    val innerInset = lensRadius * 0.12f
+    val innerPath =
+        Path().apply {
+            moveTo(left + innerInset, visorBottom)
+            quadraticBezierTo(
+                centerX,
+                visorTop + visorDepth * 0.50f,
+                right - innerInset,
+                visorBottom,
             )
+            lineTo(right - innerInset, visorTop + innerInset)
+            lineTo(left + innerInset, visorTop + innerInset)
+            close()
+        }
+    drawPath(path = innerPath, color = COLOR_VISOR_INNER)
 
-        // startAngle=0 sweeps the bottom half of the ellipse (180 degrees)
-        drawArc(
-            color = glowColor,
-            startAngle = 0f,
-            sweepAngle = 180f,
-            useCenter = false,
-            topLeft = Offset(glowRect.left, glowRect.top),
-            size = Size(glowRect.width, glowRect.height),
+    // Visor bottom elliptical opening shadow
+    drawOval(
+        brush =
+            Brush.verticalGradient(
+                colors = listOf(Color(0x99000000), Color.Transparent),
+                startY = visorBottom - lensRadius * 0.15f,
+                endY = visorBottom + lensRadius * 0.10f,
+            ),
+        topLeft = Offset(left + innerInset * 0.5f, visorBottom - lensRadius * 0.15f),
+        size = Size(visorHalfWidth * 2f - innerInset, lensRadius * 0.25f),
+    )
+}
+
+/** Casts a shadow from the visor over the upper portion of the lens. */
+private fun DrawScope.drawVisorShadow(
+    centerX: Float,
+    centerY: Float,
+    lensRadius: Float,
+) {
+    val shadowHeight = lensRadius * 0.55f
+    val shadowTop = centerY - lensRadius
+    val shadowBottom = shadowTop + shadowHeight
+
+    // Clip to the lens circle and draw a gradient shadow over the top portion
+    clipRect(
+        left = centerX - lensRadius,
+        top = shadowTop,
+        right = centerX + lensRadius,
+        bottom = centerY + lensRadius,
+    ) {
+        drawOval(
+            brush =
+                Brush.verticalGradient(
+                    colors = listOf(Color(0xAA000000), Color.Transparent),
+                    startY = shadowTop,
+                    endY = shadowBottom,
+                ),
+            topLeft = Offset(centerX - lensRadius, shadowTop),
+            size = Size(lensRadius * 2f, shadowHeight),
         )
     }
 }
 
-// ── Private utilities ─────────────────────────────────────────────────────────
+// ── Bezel ─────────────────────────────────────────────────────────────────────
 
-private fun activeColorFor(state: LightState): Color =
-    when (state) {
-        LightState.RED -> COLOR_RED_ACTIVE
-        LightState.YELLOW -> COLOR_YELLOW_ACTIVE
-        LightState.GREEN -> COLOR_GREEN_ACTIVE
+private fun DrawScope.drawBezel(
+    centerX: Float,
+    centerY: Float,
+    lensRadius: Float,
+    bezelWidth: Float,
+) {
+    val center = Offset(centerX, centerY)
+
+    // Outer bezel ambient-occlusion shadow (slightly larger than the bezel)
+    drawCircle(
+        brush =
+            Brush.radialGradient(
+                colors = listOf(Color.Transparent, Color(0x88000000)),
+                center = center,
+                radius = lensRadius + bezelWidth * 0.6f,
+            ),
+        radius = lensRadius + bezelWidth * 0.6f,
+        center = center,
+    )
+
+    // Bezel body (solid black ring)
+    drawCircle(color = COLOR_BEZEL, radius = lensRadius, center = center)
+
+    // Inward shadow on bezel inner edge to convey depth
+    drawCircle(
+        brush =
+            Brush.radialGradient(
+                colors = listOf(Color.Transparent, Color(0xBB000000)),
+                center = center,
+                radius = lensRadius,
+            ),
+        radius = lensRadius,
+        center = center,
+    )
+}
+
+// ── Reflector ─────────────────────────────────────────────────────────────────
+
+private fun DrawScope.drawReflector(
+    centerX: Float,
+    centerY: Float,
+    innerRadius: Float,
+) {
+    val center = Offset(centerX, centerY)
+    // Mirrored reflector — dark center, slightly lighter edge to suggest parabolic mirror
+    drawCircle(
+        brush =
+            Brush.radialGradient(
+                colors = listOf(COLOR_REFLECTOR_EDGE, COLOR_REFLECTOR_CENTER, COLOR_REFLECTOR_EDGE),
+                center = center,
+                radius = innerRadius,
+            ),
+        radius = innerRadius,
+        center = center,
+    )
+}
+
+// ── Fresnel lens ──────────────────────────────────────────────────────────────
+
+/**
+ * Draws concentric Fresnel ring texture over the lens area.
+ * Rings simulate the prismatic texture of a real traffic signal lens.
+ */
+private fun DrawScope.drawFresnelLens(
+    centerX: Float,
+    centerY: Float,
+    innerRadius: Float,
+    state: LightState,
+    brightness: Float,
+) {
+    val center = Offset(centerX, centerY)
+
+    // Base lens color (dim or tinted active color)
+    val baseColor =
+        if (brightness <= DIM_BRIGHTNESS + 0.05f) {
+            INACTIVE_COLORS[state] ?: Color(0xFF2A2A2A)
+        } else {
+            val (_, midColor, _) = ACTIVE_COLORS[state] ?: Triple(Color.White, Color.White, Color.White)
+            midColor.copy(alpha = (brightness * 0.35f).coerceIn(0f, 0.35f))
+        }
+
+    drawCircle(color = baseColor, radius = innerRadius, center = center)
+
+    // Concentric Fresnel rings — alternating slight lighter/darker bands
+    val ringCount = 6
+    for (i in 1..ringCount) {
+        val ringRadius = innerRadius * (i.toFloat() / ringCount)
+        val ringAlpha = if (i % 2 == 0) 0.10f else 0.06f
+        val ringColor =
+            if (brightness > DIM_BRIGHTNESS + 0.1f) {
+                Color(1f, 1f, 1f, ringAlpha)
+            } else {
+                Color(0f, 0f, 0f, ringAlpha)
+            }
+        drawCircle(
+            color = ringColor,
+            radius = ringRadius,
+            center = center,
+            style = Stroke(width = innerRadius * 0.055f),
+        )
     }
+
+    // Fine prism texture — slight radial imperfection lines
+    val imperfectionCount = 8
+    for (i in 0 until imperfectionCount) {
+        val angle = (PI * 2.0 * i / imperfectionCount).toFloat()
+        val lineAlpha = if (i % 3 == 0) 0.07f else 0.04f
+        val startOffset =
+            Offset(
+                centerX + cos(angle) * innerRadius * 0.30f,
+                centerY + sin(angle) * innerRadius * 0.30f,
+            )
+        val endOffset =
+            Offset(
+                centerX + cos(angle) * innerRadius * 0.85f,
+                centerY + sin(angle) * innerRadius * 0.85f,
+            )
+        drawLine(
+            color = Color(1f, 1f, 1f, lineAlpha),
+            start = startOffset,
+            end = endOffset,
+            strokeWidth = 0.8f,
+            cap = StrokeCap.Round,
+        )
+    }
+}
+
+// ── Incandescent glow ─────────────────────────────────────────────────────────
+
+/**
+ * Draws the brightness-modulated incandescent glow.
+ *
+ * Active: multi-stop radial gradient (center near-white → mid color → dark edge).
+ * Inactive: flat dim color fill, no glow.
+ */
+private fun DrawScope.drawIncandescentGlow(
+    centerX: Float,
+    centerY: Float,
+    innerRadius: Float,
+    state: LightState,
+    brightness: Float,
+) {
+    val center = Offset(centerX, centerY)
+    val isActive = brightness > DIM_BRIGHTNESS + 0.05f
+
+    if (!isActive) {
+        // Inactive: flat dim color (ensure reflector and fresnel show through slightly)
+        val dimColor = INACTIVE_COLORS[state] ?: Color(0xFF2A2A2A)
+        drawCircle(
+            color = dimColor.copy(alpha = 0.85f),
+            radius = innerRadius,
+            center = center,
+        )
+        return
+    }
+
+    val (centerColor, midColor, edgeColor) =
+        ACTIVE_COLORS[state]
+            ?: Triple(Color.White, Color.White, Color.White)
+
+    // Blend all three stops by brightness
+    val blendedCenter = centerColor.copy(alpha = brightness.coerceIn(0f, 1f))
+    val blendedMid = midColor.copy(alpha = (brightness * 0.95f).coerceIn(0f, 1f))
+    val blendedEdge = edgeColor.copy(alpha = (brightness * 0.80f).coerceIn(0f, 1f))
+
+    // Multi-stop radial gradient: center (hot) → mid (color) → edge (deep color)
+    drawCircle(
+        brush =
+            Brush.radialGradient(
+                colorStops =
+                    arrayOf(
+                        0.00f to blendedCenter,
+                        0.30f to blendedCenter.copy(alpha = brightness * 0.95f),
+                        0.55f to blendedMid,
+                        0.85f to blendedEdge,
+                        1.00f to edgeColor.copy(alpha = (brightness * 0.60f).coerceIn(0f, 1f)),
+                    ),
+                center = center,
+                radius = innerRadius,
+            ),
+        radius = innerRadius,
+        center = center,
+    )
+
+    // Subtle outer glow halo (brightness-gated)
+    if (brightness > 0.5f) {
+        val glowAlpha = ((brightness - 0.5f) / 0.5f * 0.25f).coerceIn(0f, 0.25f)
+        drawCircle(
+            brush =
+                Brush.radialGradient(
+                    colors =
+                        listOf(
+                            midColor.copy(alpha = glowAlpha),
+                            Color.Transparent,
+                        ),
+                    center = center,
+                    radius = innerRadius * 1.15f,
+                ),
+            radius = innerRadius * 1.15f,
+            center = center,
+        )
+    }
+}
+
+// ── Glass highlight ───────────────────────────────────────────────────────────
+
+/**
+ * Draws a soft elliptical specular highlight in the upper-left quadrant of the lens,
+ * simulating convex glass reflection. Always rendered regardless of active state.
+ */
+private fun DrawScope.drawGlassHighlight(
+    centerX: Float,
+    centerY: Float,
+    innerRadius: Float,
+) {
+    val highlightW = innerRadius * 0.55f
+    val highlightH = innerRadius * 0.35f
+
+    // Upper-left quadrant: offset from center
+    val hlLeft = centerX - innerRadius * 0.55f
+    val hlTop = centerY - innerRadius * 0.62f
+
+    drawOval(
+        brush =
+            Brush.radialGradient(
+                colors = listOf(COLOR_GLASS_HIGHLIGHT, Color.Transparent),
+                center = Offset(hlLeft + highlightW / 2f, hlTop + highlightH / 2f),
+                radius = highlightW * 0.75f,
+            ),
+        topLeft = Offset(hlLeft, hlTop),
+        size = Size(highlightW, highlightH),
+    )
+}
+
+// ── Private utilities ─────────────────────────────────────────────────────────
 
 /**
  * Produces the default steady-state brightness map: [activeState] is fully bright,
@@ -238,31 +640,31 @@ fun defaultBrightnesses(activeState: LightState): Map<LightState, Float> =
         if (state == activeState) FULL_BRIGHTNESS else DIM_BRIGHTNESS
     }
 
-// ── Previews ─────────────────────────────────────────────────────────────────
+// ── Previews ──────────────────────────────────────────────────────────────────
 
 @Suppress("FunctionName")
-@Preview(showBackground = true, backgroundColor = 0xFF1A1A1A)
+@Preview(showBackground = true, backgroundColor = 0xFF111111)
 @Composable
 private fun PreviewRedActive() {
     TrafficLightComposable(activeState = LightState.RED)
 }
 
 @Suppress("FunctionName")
-@Preview(showBackground = true, backgroundColor = 0xFF1A1A1A)
+@Preview(showBackground = true, backgroundColor = 0xFF111111)
 @Composable
 private fun PreviewYellowActive() {
     TrafficLightComposable(activeState = LightState.YELLOW)
 }
 
 @Suppress("FunctionName")
-@Preview(showBackground = true, backgroundColor = 0xFF1A1A1A)
+@Preview(showBackground = true, backgroundColor = 0xFF111111)
 @Composable
 private fun PreviewGreenActive() {
     TrafficLightComposable(activeState = LightState.GREEN)
 }
 
 @Suppress("FunctionName")
-@Preview(showBackground = true, backgroundColor = 0xFF1A1A1A)
+@Preview(showBackground = true, backgroundColor = 0xFF111111)
 @Composable
 private fun PreviewMidTransition() {
     TrafficLightComposable(

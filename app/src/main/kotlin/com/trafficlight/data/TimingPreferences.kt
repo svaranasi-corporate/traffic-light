@@ -33,9 +33,10 @@ data class TimingPreferences(
      * valid ranges. Calling this function on an already-valid instance is a no-op
      * (idempotent). (FR-7.3)
      */
-    fun validateAndClamp(): TimingPreferences = copy(
-        redDurationSeconds = redDurationSeconds.coerceIn(RED_GREEN_MIN, RED_GREEN_MAX),
-        greenDurationSeconds = greenDurationSeconds.coerceIn(RED_GREEN_MIN, RED_GREEN_MAX),
-        yellowDurationSeconds = yellowDurationSeconds.coerceIn(YELLOW_MIN, YELLOW_MAX),
-    )
+    fun validateAndClamp(): TimingPreferences =
+        copy(
+            redDurationSeconds = redDurationSeconds.coerceIn(RED_GREEN_MIN, RED_GREEN_MAX),
+            greenDurationSeconds = greenDurationSeconds.coerceIn(RED_GREEN_MIN, RED_GREEN_MAX),
+            yellowDurationSeconds = yellowDurationSeconds.coerceIn(YELLOW_MIN, YELLOW_MAX),
+        )
 }

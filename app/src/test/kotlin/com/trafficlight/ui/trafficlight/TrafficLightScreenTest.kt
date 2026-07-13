@@ -83,10 +83,11 @@ class TrafficLightScreenTest : DescribeSpec({
             // Simulates: app was backgrounded, timer was killed
             val scheduler = FakeScheduler()
             val events = mutableListOf<Pair<LightState, AnimationType>>()
-            val ctrl = TrafficLightController(
-                preferences = TimingPreferences(),
-                scheduler = scheduler,
-            ) { state, anim -> events.add(Pair(state, anim)) }
+            val ctrl =
+                TrafficLightController(
+                    preferences = TimingPreferences(),
+                    scheduler = scheduler,
+                ) { state, anim -> events.add(Pair(state, anim)) }
 
             // Start, advance to GREEN, then simulate being killed
             ctrl.startCycle()
@@ -125,10 +126,11 @@ class TrafficLightScreenTest : DescribeSpec({
 
         it("stopCycle should leave no pending callbacks after back is pressed") {
             val scheduler = FakeScheduler()
-            val ctrl = TrafficLightController(
-                preferences = TimingPreferences(),
-                scheduler = scheduler,
-            ) { _, _ -> }
+            val ctrl =
+                TrafficLightController(
+                    preferences = TimingPreferences(),
+                    scheduler = scheduler,
+                ) { _, _ -> }
 
             ctrl.startCycle()
             scheduler.hasPending.shouldBeTrue()
@@ -143,10 +145,11 @@ class TrafficLightScreenTest : DescribeSpec({
         it("stopCycle at any point in the cycle should leave no pending work") {
             // Advance through one full cycle then stop mid-second-cycle
             val scheduler = FakeScheduler()
-            val ctrl = TrafficLightController(
-                preferences = TimingPreferences(),
-                scheduler = scheduler,
-            ) { _, _ -> }
+            val ctrl =
+                TrafficLightController(
+                    preferences = TimingPreferences(),
+                    scheduler = scheduler,
+                ) { _, _ -> }
 
             ctrl.startCycle()
             scheduler.runNext() // RED → GREEN

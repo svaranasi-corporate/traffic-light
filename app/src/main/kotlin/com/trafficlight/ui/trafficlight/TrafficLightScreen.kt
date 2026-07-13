@@ -43,11 +43,12 @@ private fun Context.findActivity(): Activity? {
  *   YELLOW was preceded by GREEN
  *   RED was preceded by YELLOW
  */
-internal fun previousStateFor(incomingState: LightState): LightState = when (incomingState) {
-    LightState.GREEN -> LightState.RED
-    LightState.YELLOW -> LightState.GREEN
-    LightState.RED -> LightState.YELLOW
-}
+internal fun previousStateFor(incomingState: LightState): LightState =
+    when (incomingState) {
+        LightState.GREEN -> LightState.RED
+        LightState.YELLOW -> LightState.GREEN
+        LightState.RED -> LightState.YELLOW
+    }
 
 // ── TrafficLightScreen ────────────────────────────────────────────────────────
 
@@ -67,40 +68,40 @@ internal fun previousStateFor(incomingState: LightState): LightState = when (inc
  * @param onBack  Called when the user presses back; navigates to MenuScreen.
  */
 @Composable
-fun TrafficLightScreen(
-    onBack: () -> Unit,
-) {
+fun TrafficLightScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
     // Load timing preferences once — they are stable for the lifetime of this screen.
-    val preferences = remember {
-        PreferencesRepository(context).getTimingPreferences()
-    }
+    val preferences =
+        remember {
+            PreferencesRepository(context).getTimingPreferences()
+        }
 
     // BrightnessAnimator drives the per-light brightness state observed by the composable.
     val brightnessAnimator = remember { BrightnessAnimator(initialState = LightState.RED) }
     val brightnesses by brightnessAnimator.brightnessState
 
     // Controller drives state transitions; its callbacks update the animator.
-    val controller = remember {
-        TrafficLightController(
-            preferences = preferences,
-            onStateChanged = { newState: LightState, animationType: AnimationType ->
-                if (animationType == AnimationType.NONE) {
-                    // Initial state — snap directly without animation.
-                    brightnessAnimator.snapTo(newState)
-                } else {
-                    // Transition: derive the outgoing (previous) state and animate.
-                    brightnessAnimator.transition(
-                        outgoing = previousStateFor(newState),
-                        incoming = newState,
-                        animationType = animationType,
-                    )
-                }
-            },
-        )
-    }
+    val controller =
+        remember {
+            TrafficLightController(
+                preferences = preferences,
+                onStateChanged = { newState: LightState, animationType: AnimationType ->
+                    if (animationType == AnimationType.NONE) {
+                        // Initial state — snap directly without animation.
+                        brightnessAnimator.snapTo(newState)
+                    } else {
+                        // Transition: derive the outgoing (previous) state and animate.
+                        brightnessAnimator.transition(
+                            outgoing = previousStateFor(newState),
+                            incoming = newState,
+                            animationType = animationType,
+                        )
+                    }
+                },
+            )
+        }
 
     // ── Immersive mode + keep-screen-on + orientation lock + cycle start ─────
     DisposableEffect(Unit) {
@@ -109,10 +110,11 @@ fun TrafficLightScreen(
 
         if (activity != null) {
             // 1. Immersive sticky mode: hide status bar and navigation bar (FR-2.1)
-            insetsController = WindowCompat.getInsetsController(
-                activity.window,
-                activity.window.decorView,
-            )
+            insetsController =
+                WindowCompat.getInsetsController(
+                    activity.window,
+                    activity.window.decorView,
+                )
             insetsController.systemBarsBehavior =
                 WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             insetsController.hide(WindowInsetsCompat.Type.systemBars())
@@ -147,11 +149,12 @@ fun TrafficLightScreen(
 
     // ── onResume: restart cycle if the timer was killed while backgrounded (FR-8.4) ──
     DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME && !controller.isRunning) {
-                controller.startCycle()
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME && !controller.isRunning) {
+                    controller.startCycle()
+                }
             }
-        }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
