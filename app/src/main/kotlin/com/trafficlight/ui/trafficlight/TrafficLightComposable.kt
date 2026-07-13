@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -18,7 +19,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.tooling.preview.Preview
 import com.trafficlight.model.LightState
 import kotlin.math.PI
@@ -59,14 +60,23 @@ private const val BEZEL_WIDTH_FRACTION = 0.14f
 
 // ── Visor constants ───────────────────────────────────────────────────────────
 
-/** Visor depth (extension outward) as a fraction of the lens diameter. */
-private const val VISOR_DEPTH_FRACTION = 0.42f
+/** How far the visor projects forward, as a fraction of the lens diameter (40–50% per spec). */
+private const val VISOR_PROJECTION_FRACTION = 0.45f
 
 /** Visor half-width as a fraction of the lens radius. */
 private const val VISOR_HALF_WIDTH_FRACTION = 1.30f
 
-private val COLOR_VISOR = Color(0xFF0D0D0D)
-private val COLOR_VISOR_INNER = Color(0xFF1A1A1A)
+/** Metal wall thickness as a fraction of lens radius (~4–5 px). */
+private const val VISOR_METAL_THICKNESS_FRACTION = 0.04f
+
+/** Near-black outside shell surface. */
+private val COLOR_VISOR_OUTSIDE = Color(0xFF1A1A1A)
+
+/** Darker inside cavity surface. */
+private val COLOR_VISOR_INSIDE = Color(0xFF0D0D0D)
+
+/** Slightly lighter front rim edge — catches the light. */
+private val COLOR_VISOR_RIM = Color(0xFF2A2A2A)
 
 // ── Incandescent color model ──────────────────────────────────────────────────
 
@@ -271,7 +281,11 @@ private fun DrawScope.drawHousing(
  * Draws one complete signal module at ([centerX], [centerY]) with the given [lensRadius].
  *
  * Layer order (back → front):
- *   visor → bezel shadow → bezel ring → reflector → Fresnel lens → incandescent glow → glass highlight
+ *   bezel shadow → bezel ring → reflector → Fresnel lens → incandescent glow → glass highlight
+ *   → cylindrical visor (outside shell + inside cavity + front rim + lens shadow)
+ *
+ * The visor is drawn last so it physically overlaps the lens and bezel, matching reality
+ * (the visor hood protrudes in front of the glass).
  */
 private fun DrawScope.drawSignalModule(
     centerX: Float,
@@ -282,113 +296,164 @@ private fun DrawScope.drawSignalModule(
 ) {
     val bezelWidth = lensRadius * BEZEL_WIDTH_FRACTION
 
-    // Layer 1: Visor (drawn behind bezel/lens so it appears to overhang)
-    drawVisor(centerX, centerY, lensRadius)
-
-    // Layer 2: Bezel + ambient occlusion shadow
+    // Layer 1: Bezel + ambient occlusion shadow
     drawBezel(centerX, centerY, lensRadius, bezelWidth)
 
-    // Layer 3: Reflector backing (inside the bezel)
+    // Layer 2: Reflector backing (inside the bezel)
     drawReflector(centerX, centerY, lensRadius - bezelWidth)
 
-    // Layer 4: Fresnel lens texture
+    // Layer 3: Fresnel lens texture
     drawFresnelLens(centerX, centerY, lensRadius - bezelWidth, state, brightness)
 
-    // Layer 5: Incandescent glow (brightness-modulated)
+    // Layer 4: Incandescent glow (brightness-modulated)
     drawIncandescentGlow(centerX, centerY, lensRadius - bezelWidth, state, brightness)
 
-    // Layer 6: Glass highlight (upper-left convex reflection)
+    // Layer 5: Glass highlight (upper-left convex reflection)
     drawGlassHighlight(centerX, centerY, lensRadius - bezelWidth)
 
-    // Layer 7: Visor shadow cast over upper portion of lens
-    drawVisorShadow(centerX, centerY, lensRadius)
+    // Layer 6: Cylindrical visor drawn on top of lens layers — projects forward like a real hood
+    drawCylindricalVisor(centerX, centerY, lensRadius)
 }
 
-// ── Visor ─────────────────────────────────────────────────────────────────────
+// ── Visor (cylindrical hood) ──────────────────────────────────────────────────
 
-private fun DrawScope.drawVisor(
+/**
+ * Draws a deep cylindrical visor hood that projects forward from the housing like a hollow
+ * metal pipe or camera lens hood.
+ *
+ * Rendering sub-layers (back → front):
+ *   1. Outside shell (top/outer face of the cylinder — the visible "roof")
+ *   2. Inside surface (concave underside of the cylinder — darker cavity)
+ *   3. Front rim (elliptical opening edge — shows metal thickness ~3–6 px)
+ *   4. Lens shadow (gradient cast from visor onto upper 20–30% of lens)
+ *
+ * The visor must be called AFTER all lens layers so it overlaps them correctly.
+ */
+private fun DrawScope.drawCylindricalVisor(
     centerX: Float,
     centerY: Float,
     lensRadius: Float,
 ) {
-    val visorDepth = lensRadius * 2f * VISOR_DEPTH_FRACTION
+    val lensDiameter = lensRadius * 2f
+    // How far the visor "roof" projects upward/forward in canvas space
+    val projectionDepth = lensDiameter * VISOR_PROJECTION_FRACTION
     val visorHalfWidth = lensRadius * VISOR_HALF_WIDTH_FRACTION
+    val metalThickness = lensRadius * VISOR_METAL_THICKNESS_FRACTION
 
-    // Visor top sits above the lens top; bottom overlaps lens top slightly
-    val visorBottom = centerY - lensRadius * 0.75f
-    val visorTop = visorBottom - visorDepth
+    // ── Attachment geometry ───────────────────────────────────────────────────
+    // The rear attachment sits at the top of the housing circle where the visor
+    // meets the bezel. The front rim is shifted upward by projectionDepth (in
+    // canvas y this means a smaller y value = higher up the screen).
 
-    val left = centerX - visorHalfWidth
-    val right = centerX + visorHalfWidth
+    val rearY = centerY - lensRadius * 0.85f // where visor merges with housing
+    val frontRimY = rearY - projectionDepth // front rim, further toward viewer
 
-    // Outer visor shape — thick curved cowl
-    val outerPath =
+    val rearLeft = centerX - visorHalfWidth
+    val rearRight = centerX + visorHalfWidth
+
+    // Front rim is slightly wider than the rear attachment due to slight flare
+    val frontLeft = centerX - visorHalfWidth * 1.05f
+    val frontRight = centerX + visorHalfWidth * 1.05f
+
+    // ── Step 1: Outside shell (top face of the cylinder) ──────────────────────
+    // A filled trapezoid viewed from slightly above: rear edge at rearY,
+    // front edge at frontRimY, giving the top surface visible from our viewpoint.
+    val outsidePath =
         Path().apply {
-            moveTo(left, visorBottom)
-            // curved underside (concave)
-            quadraticBezierTo(centerX, visorTop + visorDepth * 0.40f, right, visorBottom)
-            lineTo(right, visorTop)
-            lineTo(left, visorTop)
+            moveTo(rearLeft, rearY)
+            lineTo(rearRight, rearY)
+            lineTo(frontRight, frontRimY)
+            lineTo(frontLeft, frontRimY)
             close()
         }
-    drawPath(path = outerPath, color = COLOR_VISOR)
-
-    // Inner cavity (lighter to suggest hollow interior)
-    val innerInset = lensRadius * 0.12f
-    val innerPath =
-        Path().apply {
-            moveTo(left + innerInset, visorBottom)
-            quadraticBezierTo(
-                centerX,
-                visorTop + visorDepth * 0.50f,
-                right - innerInset,
-                visorBottom,
-            )
-            lineTo(right - innerInset, visorTop + innerInset)
-            lineTo(left + innerInset, visorTop + innerInset)
-            close()
-        }
-    drawPath(path = innerPath, color = COLOR_VISOR_INNER)
-
-    // Visor bottom elliptical opening shadow
-    drawOval(
+    // Subtle gradient on the top surface — slightly lighter at the front edge
+    drawPath(
+        path = outsidePath,
         brush =
             Brush.verticalGradient(
-                colors = listOf(Color(0x99000000), Color.Transparent),
-                startY = visorBottom - lensRadius * 0.15f,
-                endY = visorBottom + lensRadius * 0.10f,
+                colors = listOf(Color(0xFF252525), COLOR_VISOR_OUTSIDE),
+                startY = rearY,
+                endY = frontRimY,
             ),
-        topLeft = Offset(left + innerInset * 0.5f, visorBottom - lensRadius * 0.15f),
-        size = Size(visorHalfWidth * 2f - innerInset, lensRadius * 0.25f),
     )
-}
 
-/** Casts a shadow from the visor over the upper portion of the lens. */
-private fun DrawScope.drawVisorShadow(
-    centerX: Float,
-    centerY: Float,
-    lensRadius: Float,
-) {
-    val shadowHeight = lensRadius * 0.55f
+    // ── Step 2: Inside / underside surface (concave cavity) ───────────────────
+    // The curved underside visible from below: a shallow arc running from the
+    // rear attachment to the front rim, filled darker than the outside shell.
+    // We model it as a slightly curved quad — the curvature evokes the hollow tube.
+    val insideBottomY = rearY + metalThickness * 2f // underside of the rear attachment
+    val insideFrontY = frontRimY + metalThickness * 2f // underside of the front rim
+
+    val insidePath =
+        Path().apply {
+            moveTo(rearLeft + metalThickness, insideBottomY)
+            // gentle concave curve of the inner cylinder wall
+            quadraticBezierTo(
+                centerX,
+                insideBottomY + projectionDepth * 0.18f, // shallow sag in the middle
+                rearRight - metalThickness,
+                insideBottomY,
+            )
+            // front rim underside — slightly lower than the outside front rim
+            lineTo(frontRight - metalThickness * 2f, insideFrontY)
+            lineTo(frontLeft + metalThickness * 2f, insideFrontY)
+            close()
+        }
+    // Darker than outside — it's the shadowed inner cavity
+    drawPath(path = insidePath, color = COLOR_VISOR_INSIDE)
+
+    // ── Step 3: Front rim (elliptical opening edge) ───────────────────────────
+    // The front of the tube opening: an ellipse foreshortened by perspective.
+    // Width = full visor opening; height = foreshortened circle (~25% of radius).
+    val rimCenterX = centerX
+    val rimCenterY = frontRimY + metalThickness
+    val rimHalfWidth = visorHalfWidth * 1.05f
+    val rimHalfHeight = lensRadius * 0.18f // foreshortening — ellipse not circle
+    val rimStroke = (lensRadius * VISOR_METAL_THICKNESS_FRACTION * 1.5f).coerceAtLeast(3f)
+
+    // Filled ellipse for the metal face of the front rim
+    drawOval(
+        color = COLOR_VISOR_RIM,
+        topLeft = Offset(rimCenterX - rimHalfWidth, rimCenterY - rimHalfHeight),
+        size = Size(rimHalfWidth * 2f, rimHalfHeight * 2f),
+    )
+    // Stroke outline to define the rim edge cleanly
+    drawOval(
+        color = COLOR_VISOR_OUTSIDE,
+        topLeft = Offset(rimCenterX - rimHalfWidth, rimCenterY - rimHalfHeight),
+        size = Size(rimHalfWidth * 2f, rimHalfHeight * 2f),
+        style = Stroke(width = rimStroke),
+    )
+
+    // ── Step 4: Lens shadow cast by the visor ─────────────────────────────────
+    // A gradient shadow starting at the inner edge of the visor and fading out
+    // over the upper 20–30% of the lens. Clipped to the lens circle for realism.
     val shadowTop = centerY - lensRadius
-    val shadowBottom = shadowTop + shadowHeight
+    val shadowBottom = shadowTop + lensRadius * 0.55f // covers ~25% of lens height
 
-    // Clip to the lens circle and draw a gradient shadow over the top portion
-    clipRect(
-        left = centerX - lensRadius,
-        top = shadowTop,
-        right = centerX + lensRadius,
-        bottom = centerY + lensRadius,
-    ) {
-        drawOval(
+    val lensClipPath =
+        Path().apply {
+            addOval(
+                Rect(
+                    left = centerX - lensRadius,
+                    top = centerY - lensRadius,
+                    right = centerX + lensRadius,
+                    bottom = centerY + lensRadius,
+                ),
+            )
+        }
+
+    // Clip to lens circle and draw the shadow gradient across the upper portion
+    clipPath(lensClipPath) {
+        drawRect(
             brush =
                 Brush.verticalGradient(
-                    colors = listOf(Color(0xAA000000), Color.Transparent),
+                    colors = listOf(Color(0xCC000000), Color.Transparent),
                     startY = shadowTop,
                     endY = shadowBottom,
                 ),
             topLeft = Offset(centerX - lensRadius, shadowTop),
-            size = Size(lensRadius * 2f, shadowHeight),
+            size = Size(lensRadius * 2f, shadowBottom - shadowTop),
         )
     }
 }
