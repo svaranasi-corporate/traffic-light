@@ -26,14 +26,14 @@ Set up the Android project skeleton with Gradle (Kotlin DSL), Material Design 3,
 Implement core data types and local persistence layer.
 
 ### Acceptance Criteria
-- [ ] `LightState` enum: RED, YELLOW, GREEN
-- [ ] `AnimationType` enum: FADE_IN, FADE_OUT, NONE
-- [ ] `TimingPreferences` data class with defaults: red=10s, green=20s, yellow=3s
-- [ ] `validateAndClamp()` clamps red/green to 3–60s, yellow to 1–10s
-- [ ] `PreferencesRepository` reads/writes all three durations to SharedPreferences
-- [ ] `resetToDefaults()` clears saved values and restores defaults
-- [ ] No network permission in manifest; no cloud sync code (FR-7.4)
-- [ ] Unit tests: clamping idempotency, boundary values (min/max/out-of-range), default fallback when no prefs saved
+- [x] `LightState` enum: RED, YELLOW, GREEN
+- [x] `AnimationType` enum: FADE_IN, FADE_OUT, NONE
+- [x] `TimingPreferences` data class with defaults: red=10s, green=20s, yellow=3s
+- [x] `validateAndClamp()` clamps red/green to 3–60s, yellow to 1–10s
+- [x] `PreferencesRepository` reads/writes all three durations to SharedPreferences
+- [x] `resetToDefaults()` clears saved values and restores defaults
+- [x] No network permission in manifest; no cloud sync code (FR-7.4)
+- [x] Unit tests: clamping idempotency, boundary values (min/max/out-of-range), default fallback when no prefs saved
 
 ---
 
