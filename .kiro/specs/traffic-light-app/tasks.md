@@ -59,11 +59,11 @@ Wire up single-Activity Compose navigation between all three screens with placeh
 Implement the `MenuScreen` composable with branding and navigation buttons.
 
 ### Acceptance Criteria
-- [ ] App title/branding displayed above the buttons (FR-1.2)
-- [ ] Two Material 3 filled buttons vertically centered: "Start" and "Options" (FR-1.2)
-- [ ] "Start" triggers navigation to TrafficLightScreen (FR-1.3)
-- [ ] "Options" triggers navigation to SettingsScreen (FR-1.4)
-- [ ] Dark theme applied per ui-guidelines.md
+- [x] App title/branding displayed above the buttons (FR-1.2)
+- [x] Two Material 3 filled buttons vertically centered: "Start" and "Options" (FR-1.2)
+- [x] "Start" triggers navigation to TrafficLightScreen (FR-1.3)
+- [x] "Options" triggers navigation to SettingsScreen (FR-1.4)
+- [x] Dark theme applied per ui-guidelines.md
 
 ---
 
