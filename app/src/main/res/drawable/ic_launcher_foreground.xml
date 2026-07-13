@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Traffic light icon foreground layer.
+    Designed for adaptive icon (108dp x 108dp canvas; safe zone is center 72dp).
+    Housing: goldenrod rounded rect. Lights: red (top), yellow (mid), green (bottom).
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Housing: goldenrod rounded rectangle, centered in safe zone -->
+    <path
+        android:fillColor="#DAA520"
+        android:pathData="
+            M40,18
+            Q36,18 36,22
+            L36,86
+            Q36,90 40,90
+            L68,90
+            Q72,90 72,86
+            L72,22
+            Q72,18 68,18
+            Z" />
+
+    <!-- Red light -->
+    <path
+        android:fillColor="#FF0000"
+        android:pathData="M54,34 m-9,0 a9,9 0 1,0 18,0 a9,9 0 1,0 -18,0" />
+
+    <!-- Yellow light -->
+    <path
+        android:fillColor="#FFBF00"
+        android:pathData="M54,54 m-9,0 a9,9 0 1,0 18,0 a9,9 0 1,0 -18,0" />
+
+    <!-- Green light -->
+    <path
+        android:fillColor="#00CC00"
+        android:pathData="M54,74 m-9,0 a9,9 0 1,0 18,0 a9,9 0 1,0 -18,0" />
+
+</vector>
