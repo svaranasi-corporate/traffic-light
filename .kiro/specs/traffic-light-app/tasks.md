@@ -156,6 +156,75 @@ Assemble `TrafficLightScreen` integrating rendering, animation, controller, and 
 
 ---
 
+## Task 9.1: Realistic Incandescent Signal Rendering
+*Satisfies: TRAFFIC-SIGNAL-VISUAL-SPEC.md — team review meeting, 13 July 2026*
+
+Replace the current single-circle light rendering with a layered, physically accurate North American incandescent traffic signal. No logic, animation timing, or state machine changes are required — this is a rendering-only update to the Canvas drawing in `TrafficLightComposable`.
+
+### Acceptance Criteria
+
+**Housing**
+- [ ] Housing background is solid black (#111111–#1A1A1A), filling the full screen behind the signal
+- [ ] Housing color is traffic-signal yellow (#D9A520); matte painted appearance with subtle texture
+- [ ] Housing uses rounded corners of 14–18 px radius
+- [ ] Housing width-to-height ratio is approximately 1 : 3.05
+- [ ] Housing has minimal reflections (no shiny surface effect)
+
+**Module Construction — Layered Rendering**
+- [ ] Each of the three signal modules is rendered as stacked layers in this order: Housing backing → Visor → Bezel → Reflector → Fresnel Lens → Incandescent Glow → Glass Highlight
+- [ ] No module is drawn as a single flat colored circle
+- [ ] Gap between adjacent modules is 6–10 px
+
+**Visor**
+- [ ] Each module has a visor that extends 40–45% of the lens diameter outward from the housing
+- [ ] Visor has a thick curved profile with an elliptical opening at the bottom
+- [ ] Visor casts a visible shadow over the upper portion of its lens
+- [ ] Visor is rendered for all three modules regardless of active/inactive state
+
+**Bezel**
+- [ ] Each module has a thick black bezel ring, 12–16 px wide, surrounding the lens
+- [ ] Bezel has a slight inward shadow to convey depth
+
+**Lens**
+- [ ] Lens diameter is approximately 80% of housing width
+- [ ] Lens has a convex appearance with visible depth
+- [ ] Lens surface shows concentric Fresnel ring texture (not a smooth gradient)
+- [ ] Lens has fine prism texture with slight imperfections — no perfectly smooth gradients
+
+**Incandescent Light Model**
+- [ ] Active light: center is near-white (color-tinted), transitions through the mid color, darkens to the edge color — simulating a single bulb in a mirrored reflector
+- [ ] Active red: center #FFEFB0, middle #FF3030, edge #A00000
+- [ ] Active yellow: center #FFF3B0, middle #FFBF1C, edge #A65B00
+- [ ] Active green: center #D7FFF0, middle #2BE060, edge #007B2D
+- [ ] Inactive red: #3C0D0D (dim, no glow)
+- [ ] Inactive yellow: #49380F (dim, no glow)
+- [ ] Inactive green: #14361C (dim, no glow)
+- [ ] No LED pixel pattern; no neon glow; no flat-fill color
+
+**Glass Highlight**
+- [ ] A small, soft, low-opacity white elliptical highlight is drawn in the upper-left quadrant of each lens, even when the light is active
+- [ ] Highlight simulates convex glass reflection
+
+**Shadows and Ambient Occlusion**
+- [ ] Shadow rendered under each visor
+- [ ] Shadow rendered around each bezel
+- [ ] Shadow rendered between adjacent modules (in the inter-module gap)
+- [ ] Shadow rendered inside the visor cavity
+
+**Animation (Turn-on / Turn-off)**
+- [ ] Turn-on brightness ramp follows keyframes: 0% → 10% → 40% → 75% → 100%
+- [ ] Turn-on total duration is 120–180 ms
+- [ ] Turn-off brightness ramp follows keyframes: 100% → 60% → 25% → 5% → 0%
+- [ ] No instant on/off switching — all transitions use the incandescent ramp
+
+**General**
+- [ ] All rendering is programmatic using Canvas — no bitmaps or image assets
+- [ ] Signal scales proportionally across different screen sizes and densities
+- [ ] Rendering does not introduce new dependencies beyond the existing Canvas/Compose stack
+- [ ] Existing state machine, controller, animation timing, and lifecycle behaviour are unchanged
+
+---
+
 ## Task 10: Integration and Property-Based Tests
 *Validates: all FR sections*
 
