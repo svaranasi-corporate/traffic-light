@@ -11,15 +11,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.tooling.preview.Preview
 import com.trafficlight.model.LightState
 import kotlin.math.PI
@@ -57,26 +54,6 @@ private const val MODULE_GAP_FRACTION = 0.04f // ~8 px gap in the rendered gap a
 
 /** Bezel ring width as a fraction of lens radius (maps to ~14 px). */
 private const val BEZEL_WIDTH_FRACTION = 0.14f
-
-// ── Visor constants ───────────────────────────────────────────────────────────
-
-/** How far the visor projects forward, as a fraction of the lens diameter (40–50% per spec). */
-private const val VISOR_PROJECTION_FRACTION = 0.45f
-
-/** Visor half-width as a fraction of the lens radius. */
-private const val VISOR_HALF_WIDTH_FRACTION = 1.30f
-
-/** Metal wall thickness as a fraction of lens radius (~4–5 px). */
-private const val VISOR_METAL_THICKNESS_FRACTION = 0.04f
-
-/** Near-black outside shell surface. */
-private val COLOR_VISOR_OUTSIDE = Color(0xFF1A1A1A)
-
-/** Darker inside cavity surface. */
-private val COLOR_VISOR_INSIDE = Color(0xFF0D0D0D)
-
-/** Slightly lighter front rim edge — catches the light. */
-private val COLOR_VISOR_RIM = Color(0xFF2A2A2A)
 
 // ── Incandescent color model ──────────────────────────────────────────────────
 
@@ -281,11 +258,7 @@ private fun DrawScope.drawHousing(
  * Draws one complete signal module at ([centerX], [centerY]) with the given [lensRadius].
  *
  * Layer order (back → front):
- *   bezel shadow → bezel ring → reflector → Fresnel lens → incandescent glow → glass highlight
- *   → cylindrical visor (outside shell + inside cavity + front rim + lens shadow)
- *
- * The visor is drawn last so it physically overlaps the lens and bezel, matching reality
- * (the visor hood protrudes in front of the glass).
+ *   visor → bezel shadow → bezel ring → reflector → Fresnel lens → incandescent glow → glass highlight
  */
 private fun DrawScope.drawSignalModule(
     centerX: Float,
@@ -311,151 +284,36 @@ private fun DrawScope.drawSignalModule(
     // Layer 5: Glass highlight (upper-left convex reflection)
     drawGlassHighlight(centerX, centerY, lensRadius - bezelWidth)
 
-    // Layer 6: Cylindrical visor drawn on top of lens layers — projects forward like a real hood
-    drawCylindricalVisor(centerX, centerY, lensRadius)
+    // Layer 6: Visor — semi-circle drawn on top of the lens
+    drawVisor(centerX, centerY, lensRadius)
 }
 
-// ── Visor (cylindrical hood) ──────────────────────────────────────────────────
+// ── Visor ─────────────────────────────────────────────────────────────────────
 
-/**
- * Draws a deep cylindrical visor hood that projects forward from the housing like a hollow
- * metal pipe or camera lens hood.
- *
- * Rendering sub-layers (back → front):
- *   1. Outside shell (top/outer face of the cylinder — the visible "roof")
- *   2. Inside surface (concave underside of the cylinder — darker cavity)
- *   3. Front rim (elliptical opening edge — shows metal thickness ~3–6 px)
- *   4. Lens shadow (gradient cast from visor onto upper 20–30% of lens)
- *
- * The visor must be called AFTER all lens layers so it overlaps them correctly.
- */
-private fun DrawScope.drawCylindricalVisor(
+private fun DrawScope.drawVisor(
     centerX: Float,
     centerY: Float,
     lensRadius: Float,
 ) {
-    val lensDiameter = lensRadius * 2f
-    // How far the visor "roof" projects upward/forward in canvas space
-    val projectionDepth = lensDiameter * VISOR_PROJECTION_FRACTION
-    val visorHalfWidth = lensRadius * VISOR_HALF_WIDTH_FRACTION
-    val metalThickness = lensRadius * VISOR_METAL_THICKNESS_FRACTION
+    // The visor is a filled half-disk drawn above the lens center.
+    // It sits flush with the top of the bezel and overhangs slightly wider.
+    val visorRadius = lensRadius * 1.08f  // slightly wider than the lens
+    val visorCenterY = centerY            // arc is centered on lens center
 
-    // ── Attachment geometry ───────────────────────────────────────────────────
-    // The rear attachment sits at the top of the housing circle where the visor
-    // meets the bezel. The front rim is shifted upward by projectionDepth (in
-    // canvas y this means a smaller y value = higher up the screen).
+    // drawArc bounding box: square centered on visorCenterY
+    val left = centerX - visorRadius
+    val top = visorCenterY - visorRadius
+    val size = visorRadius * 2f
 
-    val rearY = centerY - lensRadius * 0.85f // where visor merges with housing
-    val frontRimY = rearY - projectionDepth // front rim, further toward viewer
-
-    val rearLeft = centerX - visorHalfWidth
-    val rearRight = centerX + visorHalfWidth
-
-    // Front rim is slightly wider than the rear attachment due to slight flare
-    val frontLeft = centerX - visorHalfWidth * 1.05f
-    val frontRight = centerX + visorHalfWidth * 1.05f
-
-    // ── Step 1: Outside shell (top face of the cylinder) ──────────────────────
-    // A filled trapezoid viewed from slightly above: rear edge at rearY,
-    // front edge at frontRimY, giving the top surface visible from our viewpoint.
-    val outsidePath =
-        Path().apply {
-            moveTo(rearLeft, rearY)
-            lineTo(rearRight, rearY)
-            lineTo(frontRight, frontRimY)
-            lineTo(frontLeft, frontRimY)
-            close()
-        }
-    // Subtle gradient on the top surface — slightly lighter at the front edge
-    drawPath(
-        path = outsidePath,
-        brush =
-            Brush.verticalGradient(
-                colors = listOf(Color(0xFF252525), COLOR_VISOR_OUTSIDE),
-                startY = rearY,
-                endY = frontRimY,
-            ),
+    // Filled upper half-circle: startAngle=180° (left), sweep=180° (to right) = top half
+    drawArc(
+        color = Color(0xFF1A1A1A),
+        startAngle = 180f,
+        sweepAngle = 180f,
+        useCenter = true,
+        topLeft = Offset(left, top),
+        size = Size(size, size),
     )
-
-    // ── Step 2: Inside / underside surface (concave cavity) ───────────────────
-    // The curved underside visible from below: a shallow arc running from the
-    // rear attachment to the front rim, filled darker than the outside shell.
-    // We model it as a slightly curved quad — the curvature evokes the hollow tube.
-    val insideBottomY = rearY + metalThickness * 2f // underside of the rear attachment
-    val insideFrontY = frontRimY + metalThickness * 2f // underside of the front rim
-
-    val insidePath =
-        Path().apply {
-            moveTo(rearLeft + metalThickness, insideBottomY)
-            // gentle concave curve of the inner cylinder wall
-            quadraticBezierTo(
-                centerX,
-                insideBottomY + projectionDepth * 0.18f, // shallow sag in the middle
-                rearRight - metalThickness,
-                insideBottomY,
-            )
-            // front rim underside — slightly lower than the outside front rim
-            lineTo(frontRight - metalThickness * 2f, insideFrontY)
-            lineTo(frontLeft + metalThickness * 2f, insideFrontY)
-            close()
-        }
-    // Darker than outside — it's the shadowed inner cavity
-    drawPath(path = insidePath, color = COLOR_VISOR_INSIDE)
-
-    // ── Step 3: Front rim (elliptical opening edge) ───────────────────────────
-    // The front of the tube opening: an ellipse foreshortened by perspective.
-    // Width = full visor opening; height = foreshortened circle (~25% of radius).
-    val rimCenterX = centerX
-    val rimCenterY = frontRimY + metalThickness
-    val rimHalfWidth = visorHalfWidth * 1.05f
-    val rimHalfHeight = lensRadius * 0.18f // foreshortening — ellipse not circle
-    val rimStroke = (lensRadius * VISOR_METAL_THICKNESS_FRACTION * 1.5f).coerceAtLeast(3f)
-
-    // Filled ellipse for the metal face of the front rim
-    drawOval(
-        color = COLOR_VISOR_RIM,
-        topLeft = Offset(rimCenterX - rimHalfWidth, rimCenterY - rimHalfHeight),
-        size = Size(rimHalfWidth * 2f, rimHalfHeight * 2f),
-    )
-    // Stroke outline to define the rim edge cleanly
-    drawOval(
-        color = COLOR_VISOR_OUTSIDE,
-        topLeft = Offset(rimCenterX - rimHalfWidth, rimCenterY - rimHalfHeight),
-        size = Size(rimHalfWidth * 2f, rimHalfHeight * 2f),
-        style = Stroke(width = rimStroke),
-    )
-
-    // ── Step 4: Lens shadow cast by the visor ─────────────────────────────────
-    // A gradient shadow starting at the inner edge of the visor and fading out
-    // over the upper 20–30% of the lens. Clipped to the lens circle for realism.
-    val shadowTop = centerY - lensRadius
-    val shadowBottom = shadowTop + lensRadius * 0.55f // covers ~25% of lens height
-
-    val lensClipPath =
-        Path().apply {
-            addOval(
-                Rect(
-                    left = centerX - lensRadius,
-                    top = centerY - lensRadius,
-                    right = centerX + lensRadius,
-                    bottom = centerY + lensRadius,
-                ),
-            )
-        }
-
-    // Clip to lens circle and draw the shadow gradient across the upper portion
-    clipPath(lensClipPath) {
-        drawRect(
-            brush =
-                Brush.verticalGradient(
-                    colors = listOf(Color(0xCC000000), Color.Transparent),
-                    startY = shadowTop,
-                    endY = shadowBottom,
-                ),
-            topLeft = Offset(centerX - lensRadius, shadowTop),
-            size = Size(lensRadius * 2f, shadowBottom - shadowTop),
-        )
-    }
 }
 
 // ── Bezel ─────────────────────────────────────────────────────────────────────
