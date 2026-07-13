@@ -88,7 +88,8 @@ Requirements:
 -   Extends 40--45% of lens diameter
 -   Thick curved visor
 -   Elliptical opening
--   Casts a shadow over the upper lens
+-   Casts a shadow over the upper lens if bulb is unlit.
+-   If bulb is lit, the shadow turns into a reflection of light that reflects off the underside of the visor as a faint glow. 
 
 Without the visor the signal immediately looks artificial.
 

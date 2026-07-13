@@ -62,15 +62,17 @@ private const val BEZEL_WIDTH_FRACTION = 0.14f
 
 /**
  * Visor arc radius as a fraction of lens radius.
- * The visor arc sits just outside the bezel outer edge, surrounding the lens.
+ * 1.10f gives visible separation from the bezel without the endpoints
+ * bleeding into the inter-module gap (arc is clipped to the top half).
  */
-private const val VISOR_RADIUS_FRACTION = 1.18f
+private const val VISOR_RADIUS_FRACTION = 1.10f
 
 /**
  * Visor arc stroke width as a fraction of lens radius.
  * Represents the visible tube wall thickness viewed straight-on.
+ * 20% of the original 0.22f value.
  */
-private const val VISOR_STROKE_FRACTION = 0.22f
+private const val VISOR_STROKE_FRACTION = 0.044f
 
 // ── Incandescent color model ──────────────────────────────────────────────────
 
@@ -196,24 +198,7 @@ private fun DrawScope.drawIncandescentSignal(brightnesses: Map<LightState, Float
         )
     }
 
-    // ── Inter-module gap shadow ───────────────────────────────────────────────
-    lightOrdering.forEachIndexed { index, _ ->
-        if (index < 2) {
-            val topModuleCenterY = startY + index * (lensRadius * 2f + gapPx)
-            val gapTop = topModuleCenterY + lensRadius
-            val gapBottom = gapTop + gapPx
-            drawRect(
-                brush =
-                    Brush.verticalGradient(
-                        colors = listOf(Color(0x66000000), Color.Transparent, Color(0x66000000)),
-                        startY = gapTop,
-                        endY = gapBottom,
-                    ),
-                topLeft = Offset(0f, gapTop),
-                size = Size(w, gapPx),
-            )
-        }
-    }
+    // Inter-module gap shadow removed — was painting a yellow shelf stripe between modules.
 }
 
 // ── Housing ───────────────────────────────────────────────────────────────────
@@ -298,11 +283,13 @@ private fun DrawScope.drawSignalModule(
     // Layer 4: Incandescent glow (brightness-modulated)
     drawIncandescentGlow(centerX, centerY, lensRadius - bezelWidth, state, brightness)
 
-    // Layer 5: Glass highlight (upper-left convex reflection)
-    drawGlassHighlight(centerX, centerY, lensRadius - bezelWidth)
+    // Layer 5: Glass highlight (upper-left convex reflection) — only when inactive
+    if (brightness <= DIM_BRIGHTNESS + 0.05f) {
+        drawGlassHighlight(centerX, centerY, lensRadius - bezelWidth)
+    }
 
     // Layer 6: Visor — straight-on arc ring drawn on top of lens layers
-    drawVisor(centerX, centerY, lensRadius)
+    drawVisor(centerX, centerY, lensRadius, state, brightness)
 }
 
 // ── Visor ─────────────────────────────────────────────────────────────────────
@@ -323,36 +310,54 @@ private fun DrawScope.drawVisor(
     centerX: Float,
     centerY: Float,
     lensRadius: Float,
+    state: LightState,
+    brightness: Float,
 ) {
     // ── Step 1: Thick semi-circular arc (hood wall viewed front-on) ───────────
-    // The arc radius is slightly larger than the lens/bezel, so the visor
-    // surrounds the lens without obscuring its face.
+    // Clip to a rect that is strictly above centerY so the arc endpoints
+    // never touch the yellow housing in the inter-module gap.
     val visorRadius = lensRadius * VISOR_RADIUS_FRACTION
     val visorStrokeWidth = lensRadius * VISOR_STROKE_FRACTION
-
-    drawArc(
-        color = Color(0xFF1A1A1A),
-        startAngle = 180f,
-        sweepAngle = 180f,
-        useCenter = false,
-        topLeft = Offset(centerX - visorRadius, centerY - visorRadius),
-        size = Size(visorRadius * 2f, visorRadius * 2f),
-        style = Stroke(width = visorStrokeWidth, cap = StrokeCap.Butt),
-    )
+    val visorClipPath = Path().apply {
+        addRect(
+            Rect(
+                left = centerX - visorRadius - visorStrokeWidth,
+                top = centerY - visorRadius - visorStrokeWidth,
+                right = centerX + visorRadius + visorStrokeWidth,
+                bottom = centerY,
+            )
+        )
+    }
+    clipPath(visorClipPath) {
+        drawArc(
+            color = Color(0xFF1A1A1A),
+            startAngle = 180f,
+            sweepAngle = 180f,
+            useCenter = false,
+            topLeft = Offset(centerX - visorRadius, centerY - visorRadius),
+            size = Size(visorRadius * 2f, visorRadius * 2f),
+            style = Stroke(width = visorStrokeWidth, cap = StrokeCap.Butt),
+        )
+    }
 
     // ── Step 2: Inner edge highlight (tube inner surface hint) ───────────────
     val visorInnerRadius = visorRadius - visorStrokeWidth * 0.5f
-    drawArc(
-        color = Color(0xFF2E2E2E),
-        startAngle = 180f,
-        sweepAngle = 180f,
-        useCenter = false,
-        topLeft = Offset(centerX - visorInnerRadius, centerY - visorInnerRadius),
-        size = Size(visorInnerRadius * 2f, visorInnerRadius * 2f),
-        style = Stroke(width = 2f, cap = StrokeCap.Butt),
-    )
+    clipPath(visorClipPath) {
+        drawArc(
+            color = Color(0xFF2E2E2E),
+            startAngle = 180f,
+            sweepAngle = 180f,
+            useCenter = false,
+            topLeft = Offset(centerX - visorInnerRadius, centerY - visorInnerRadius),
+            size = Size(visorInnerRadius * 2f, visorInnerRadius * 2f),
+            style = Stroke(width = 2f, cap = StrokeCap.Butt),
+        )
+    }
 
-    // ── Step 3: Shadow on upper lens (visor interior blocks light from above) ─
+    // ── Step 3: Shadow or reflected glow on upper lens ───────────────────────
+    // When the bulb is inactive: dark shadow (visor blocks ambient light from above).
+    // When the bulb is active: the light bounces off the visor's underside and
+    // casts a faint tinted glow back onto the upper portion of the lens.
     val lensClipPath = Path().apply {
         addOval(
             Rect(
@@ -363,16 +368,33 @@ private fun DrawScope.drawVisor(
             )
         )
     }
+    val isActive = brightness > DIM_BRIGHTNESS + 0.05f
     clipPath(lensClipPath) {
-        drawRect(
-            brush = Brush.verticalGradient(
-                colors = listOf(Color(0xBB000000), Color.Transparent),
-                startY = centerY - lensRadius,
-                endY = centerY - lensRadius * 0.45f,
-            ),
-            topLeft = Offset(centerX - lensRadius, centerY - lensRadius),
-            size = Size(lensRadius * 2f, lensRadius * 0.6f),
-        )
+        if (isActive) {
+            // Reflected glow: use the mid-color of the active state, low opacity
+            val midColor = ACTIVE_COLORS[state]?.second ?: Color.White
+            val glowAlpha = (brightness * 0.28f).coerceIn(0f, 0.28f)
+            drawRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(midColor.copy(alpha = glowAlpha), Color.Transparent),
+                    startY = centerY - lensRadius,
+                    endY = centerY - lensRadius * 0.35f,
+                ),
+                topLeft = Offset(centerX - lensRadius, centerY - lensRadius),
+                size = Size(lensRadius * 2f, lensRadius * 0.7f),
+            )
+        } else {
+            // Shadow: visor interior blocks light from above
+            drawRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color(0xBB000000), Color.Transparent),
+                    startY = centerY - lensRadius,
+                    endY = centerY - lensRadius * 0.45f,
+                ),
+                topLeft = Offset(centerX - lensRadius, centerY - lensRadius),
+                size = Size(lensRadius * 2f, lensRadius * 0.6f),
+            )
+        }
     }
 }
 
@@ -562,9 +584,9 @@ private fun DrawScope.drawIncandescentGlow(
         center = center,
     )
 
-    // Subtle outer glow halo (brightness-gated)
+    // Outer glow halo (brightness-gated) — 2x radius and 2x alpha vs original
     if (brightness > 0.5f) {
-        val glowAlpha = ((brightness - 0.5f) / 0.5f * 0.25f).coerceIn(0f, 0.25f)
+        val glowAlpha = ((brightness - 0.5f) / 0.5f * 0.50f).coerceIn(0f, 0.50f)
         drawCircle(
             brush =
                 Brush.radialGradient(
@@ -574,9 +596,9 @@ private fun DrawScope.drawIncandescentGlow(
                             Color.Transparent,
                         ),
                     center = center,
-                    radius = innerRadius * 1.15f,
+                    radius = innerRadius * 1.30f,
                 ),
-            radius = innerRadius * 1.15f,
+            radius = innerRadius * 1.30f,
             center = center,
         )
     }
