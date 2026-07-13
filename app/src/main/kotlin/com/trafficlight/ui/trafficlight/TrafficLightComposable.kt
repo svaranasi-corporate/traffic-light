@@ -11,12 +11,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.tooling.preview.Preview
 import com.trafficlight.model.LightState
 import kotlin.math.PI
@@ -54,6 +57,20 @@ private const val MODULE_GAP_FRACTION = 0.04f // ~8 px gap in the rendered gap a
 
 /** Bezel ring width as a fraction of lens radius (maps to ~14 px). */
 private const val BEZEL_WIDTH_FRACTION = 0.14f
+
+// ── Visor geometry constants ──────────────────────────────────────────────────
+
+/**
+ * Visor arc radius as a fraction of lens radius.
+ * The visor arc sits just outside the bezel outer edge, surrounding the lens.
+ */
+private const val VISOR_RADIUS_FRACTION = 1.18f
+
+/**
+ * Visor arc stroke width as a fraction of lens radius.
+ * Represents the visible tube wall thickness viewed straight-on.
+ */
+private const val VISOR_STROKE_FRACTION = 0.22f
 
 // ── Incandescent color model ──────────────────────────────────────────────────
 
@@ -258,7 +275,7 @@ private fun DrawScope.drawHousing(
  * Draws one complete signal module at ([centerX], [centerY]) with the given [lensRadius].
  *
  * Layer order (back → front):
- *   visor → bezel shadow → bezel ring → reflector → Fresnel lens → incandescent glow → glass highlight
+ *   bezel shadow → bezel ring → reflector → Fresnel lens → incandescent glow → glass highlight → visor
  */
 private fun DrawScope.drawSignalModule(
     centerX: Float,
@@ -284,36 +301,79 @@ private fun DrawScope.drawSignalModule(
     // Layer 5: Glass highlight (upper-left convex reflection)
     drawGlassHighlight(centerX, centerY, lensRadius - bezelWidth)
 
-    // Layer 6: Visor — semi-circle drawn on top of the lens
+    // Layer 6: Visor — straight-on arc ring drawn on top of lens layers
     drawVisor(centerX, centerY, lensRadius)
 }
 
 // ── Visor ─────────────────────────────────────────────────────────────────────
 
+/**
+ * Draws a cylindrical visor (cowl) as seen straight-on from the front.
+ *
+ * From a front-on viewpoint, the forward-projecting cylinder appears as a
+ * thick semi-circular arc surrounding the top half of the lens. The three
+ * elements drawn are:
+ *   1. Thick dark arc — the tube wall of the hood, from 180° to 360° (top half).
+ *   2. Inner edge highlight — a thin slightly-lighter arc at the inner diameter
+ *      to hint at depth.
+ *   3. Shadow gradient — covers the upper ~25% of the lens interior, simulating
+ *      the shade cast by the hood blocking light from above.
+ */
 private fun DrawScope.drawVisor(
     centerX: Float,
     centerY: Float,
     lensRadius: Float,
 ) {
-    // The visor is a filled half-disk drawn above the lens center.
-    // It sits flush with the top of the bezel and overhangs slightly wider.
-    val visorRadius = lensRadius * 1.08f  // slightly wider than the lens
-    val visorCenterY = centerY            // arc is centered on lens center
+    // ── Step 1: Thick semi-circular arc (hood wall viewed front-on) ───────────
+    // The arc radius is slightly larger than the lens/bezel, so the visor
+    // surrounds the lens without obscuring its face.
+    val visorRadius = lensRadius * VISOR_RADIUS_FRACTION
+    val visorStrokeWidth = lensRadius * VISOR_STROKE_FRACTION
 
-    // drawArc bounding box: square centered on visorCenterY
-    val left = centerX - visorRadius
-    val top = visorCenterY - visorRadius
-    val size = visorRadius * 2f
-
-    // Filled upper half-circle: startAngle=180° (left), sweep=180° (to right) = top half
     drawArc(
         color = Color(0xFF1A1A1A),
         startAngle = 180f,
         sweepAngle = 180f,
-        useCenter = true,
-        topLeft = Offset(left, top),
-        size = Size(size, size),
+        useCenter = false,
+        topLeft = Offset(centerX - visorRadius, centerY - visorRadius),
+        size = Size(visorRadius * 2f, visorRadius * 2f),
+        style = Stroke(width = visorStrokeWidth, cap = StrokeCap.Butt),
     )
+
+    // ── Step 2: Inner edge highlight (tube inner surface hint) ───────────────
+    val visorInnerRadius = visorRadius - visorStrokeWidth * 0.5f
+    drawArc(
+        color = Color(0xFF2E2E2E),
+        startAngle = 180f,
+        sweepAngle = 180f,
+        useCenter = false,
+        topLeft = Offset(centerX - visorInnerRadius, centerY - visorInnerRadius),
+        size = Size(visorInnerRadius * 2f, visorInnerRadius * 2f),
+        style = Stroke(width = 2f, cap = StrokeCap.Butt),
+    )
+
+    // ── Step 3: Shadow on upper lens (visor interior blocks light from above) ─
+    val lensClipPath = Path().apply {
+        addOval(
+            Rect(
+                centerX - lensRadius,
+                centerY - lensRadius,
+                centerX + lensRadius,
+                centerY + lensRadius,
+            )
+        )
+    }
+    clipPath(lensClipPath) {
+        drawRect(
+            brush = Brush.verticalGradient(
+                colors = listOf(Color(0xBB000000), Color.Transparent),
+                startY = centerY - lensRadius,
+                endY = centerY - lensRadius * 0.45f,
+            ),
+            topLeft = Offset(centerX - lensRadius, centerY - lensRadius),
+            size = Size(lensRadius * 2f, lensRadius * 0.6f),
+        )
+    }
 }
 
 // ── Bezel ─────────────────────────────────────────────────────────────────────
