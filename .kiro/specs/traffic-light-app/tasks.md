@@ -128,13 +128,13 @@ Implement the custom Canvas composable that draws the housing and three light ci
 Implement incandescent-style brightness animations using `ValueAnimator`.
 
 ### Acceptance Criteria
-- [ ] Fade-out uses decelerate curve: `1.0 - (1.0 - progress)²` (FR-5.1)
-- [ ] Fade-in uses accelerate curve: `progress²` (FR-5.2)
-- [ ] Total transition duration ~300ms (FR-5.3)
-- [ ] No two lights simultaneously at full brightness (1.0) during any transition (FR-5.4)
-- [ ] Brightness values stay within [0.15, 1.0] throughout animation
-- [ ] 60fps target via `ValueAnimator` tied to choreographer
-- [ ] Property test: brightness always in [DIM, FULL] for any progress value in [0.0, 1.0]
+- [x] Fade-out uses decelerate curve: `1.0 - (1.0 - progress)²` (FR-5.1)
+- [x] Fade-in uses accelerate curve: `progress²` (FR-5.2)
+- [x] Total transition duration ~300ms (FR-5.3)
+- [x] No two lights simultaneously at full brightness (1.0) during any transition (FR-5.4)
+- [x] Brightness values stay within [0.15, 1.0] throughout animation
+- [x] 60fps target via `ValueAnimator` tied to choreographer
+- [x] Property test: brightness always in [DIM, FULL] for any progress value in [0.0, 1.0]
 
 ---
 
