@@ -11,12 +11,12 @@ Each task references the FRD requirements it satisfies.
 Set up the Android project skeleton with Gradle (Kotlin DSL), Material Design 3, and the package structure defined in coding-guidelines.md.
 
 ### Acceptance Criteria
-- [ ] Android project created targeting API 33+
-- [ ] Kotlin DSL Gradle build configured
-- [ ] Material Design 3 dependency added
-- [ ] Package structure: `com.trafficlight/{ui/menu, ui/trafficlight, ui/settings, controller, data, model}`
-- [ ] ktlint configured and passing on an empty project
-- [ ] App builds and launches without errors
+- [x] Android project created targeting API 33+
+- [x] Kotlin DSL Gradle build configured
+- [x] Material Design 3 dependency added
+- [x] Package structure: `com.trafficlight/{ui/menu, ui/trafficlight, ui/settings, controller, data, model}`
+- [x] ktlint configured and passing on an empty project
+- [x] App builds and launches without errors
 
 ---
 
@@ -43,13 +43,13 @@ Implement core data types and local persistence layer.
 Wire up single-Activity Compose navigation between all three screens with placeholder composables.
 
 ### Acceptance Criteria
-- [ ] Single `MainActivity` with `NavHost` containing three routes: `menu`, `trafficlight`, `settings`
-- [ ] "Start" on MenuScreen navigates to `trafficlight` route (FR-1.3)
-- [ ] "Options" on MenuScreen navigates to `settings` route (FR-1.4)
-- [ ] Back from SettingsScreen returns to MenuScreen (FR-6.7)
-- [ ] Back from TrafficLightScreen returns to MenuScreen (FR-8.3)
-- [ ] No duplicate screen instances on rapid taps
-- [ ] App launches and shows MenuScreen as the first screen (FR-1.1)
+- [x] Single `MainActivity` with `NavHost` containing three routes: `menu`, `trafficlight`, `settings`
+- [x] "Start" on MenuScreen navigates to `trafficlight` route (FR-1.3)
+- [x] "Options" on MenuScreen navigates to `settings` route (FR-1.4)
+- [x] Back from SettingsScreen returns to MenuScreen (FR-6.7)
+- [x] Back from TrafficLightScreen returns to MenuScreen (FR-8.3)
+- [x] No duplicate screen instances on rapid taps
+- [x] App launches and shows MenuScreen as the first screen (FR-1.1)
 
 ---
 
