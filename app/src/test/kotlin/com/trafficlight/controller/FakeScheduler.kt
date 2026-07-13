@@ -9,7 +9,6 @@ package com.trafficlight.controller
  * This keeps all tests pure JVM — no Android framework, no real clocks.
  */
 class FakeScheduler : Scheduler {
-
     data class PendingTask(val delayMs: Long, val action: () -> Unit)
 
     /** Ordered list of tasks waiting to execute; sorted by scheduled delay ascending. */
@@ -23,7 +22,10 @@ class FakeScheduler : Scheduler {
      * Schedules [action] to execute after [delayMs] virtual milliseconds.
      * The task itself (a [PendingTask]) is returned as the cancellation token.
      */
-    override fun schedule(delayMs: Long, action: () -> Unit): Any {
+    override fun schedule(
+        delayMs: Long,
+        action: () -> Unit,
+    ): Any {
         val task = PendingTask(delayMs, action)
         queue.add(task)
         queue.sortBy { it.delayMs }

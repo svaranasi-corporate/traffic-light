@@ -31,9 +31,10 @@ class TrafficLightControllerTest : DescribeSpec({
         scheduler: FakeScheduler = FakeScheduler(),
         events: MutableList<Event> = mutableListOf(),
     ): Triple<TrafficLightController, FakeScheduler, MutableList<Event>> {
-        val ctrl = TrafficLightController(prefs, scheduler) { state, anim ->
-            events.add(Event(state, anim))
-        }
+        val ctrl =
+            TrafficLightController(prefs, scheduler) { state, anim ->
+                events.add(Event(state, anim))
+            }
         return Triple(ctrl, scheduler, events)
     }
 
@@ -93,15 +94,16 @@ class TrafficLightControllerTest : DescribeSpec({
             repeat(6) { scheduler.runNext() } // 2 complete cycles
             val stateSequence = events.map { it.state }
             // RED(start) + GREEN + YELLOW + RED + GREEN + YELLOW + RED
-            stateSequence shouldContainExactly listOf(
-                LightState.RED,
-                LightState.GREEN,
-                LightState.YELLOW,
-                LightState.RED,
-                LightState.GREEN,
-                LightState.YELLOW,
-                LightState.RED,
-            )
+            stateSequence shouldContainExactly
+                listOf(
+                    LightState.RED,
+                    LightState.GREEN,
+                    LightState.YELLOW,
+                    LightState.RED,
+                    LightState.GREEN,
+                    LightState.YELLOW,
+                    LightState.RED,
+                )
         }
 
         it("should always use NONE animation for the first event only") {
@@ -137,11 +139,12 @@ class TrafficLightControllerTest : DescribeSpec({
     // ── timing: each phase runs for configured duration ───────────────────────
     describe("phase timing") {
         it("should schedule the first task with the red duration in milliseconds") {
-            val prefs = TimingPreferences(
-                redDurationSeconds = 10,
-                greenDurationSeconds = 20,
-                yellowDurationSeconds = 3,
-            )
+            val prefs =
+                TimingPreferences(
+                    redDurationSeconds = 10,
+                    greenDurationSeconds = 20,
+                    yellowDurationSeconds = 3,
+                )
             val scheduler = FakeScheduler()
             val ctrl = TrafficLightController(prefs, scheduler) { _, _ -> }
             ctrl.startCycle()
@@ -151,11 +154,12 @@ class TrafficLightControllerTest : DescribeSpec({
         }
 
         it("should schedule green phase with green duration after RED fires") {
-            val prefs = TimingPreferences(
-                redDurationSeconds = 10,
-                greenDurationSeconds = 20,
-                yellowDurationSeconds = 3,
-            )
+            val prefs =
+                TimingPreferences(
+                    redDurationSeconds = 10,
+                    greenDurationSeconds = 20,
+                    yellowDurationSeconds = 3,
+                )
             val scheduler = FakeScheduler()
             val ctrl = TrafficLightController(prefs, scheduler) { _, _ -> }
             ctrl.startCycle()
@@ -166,11 +170,12 @@ class TrafficLightControllerTest : DescribeSpec({
         }
 
         it("should schedule yellow phase with yellow duration after GREEN fires") {
-            val prefs = TimingPreferences(
-                redDurationSeconds = 10,
-                greenDurationSeconds = 20,
-                yellowDurationSeconds = 3,
-            )
+            val prefs =
+                TimingPreferences(
+                    redDurationSeconds = 10,
+                    greenDurationSeconds = 20,
+                    yellowDurationSeconds = 3,
+                )
             val scheduler = FakeScheduler()
             val ctrl = TrafficLightController(prefs, scheduler) { _, _ -> }
             ctrl.startCycle()
@@ -243,9 +248,10 @@ class TrafficLightControllerTest : DescribeSpec({
             events.clear()
             val newScheduler = FakeScheduler()
             val newEvents = mutableListOf<Event>()
-            val newCtrl = TrafficLightController(TimingPreferences(), newScheduler) { s, a ->
-                newEvents.add(Event(s, a))
-            }
+            val newCtrl =
+                TrafficLightController(TimingPreferences(), newScheduler) { s, a ->
+                    newEvents.add(Event(s, a))
+                }
             newCtrl.startCycle()
             newScheduler.runNext() // RED → GREEN
             newScheduler.runNext() // GREEN → YELLOW
@@ -274,11 +280,12 @@ class TrafficLightControllerTest : DescribeSpec({
     describe("property: getNextState always follows the correct sequence") {
         it("should always produce the same successor for any given LightState") {
             checkAll(Arb.enum<LightState>()) { state ->
-                val expected = when (state) {
-                    LightState.RED -> LightState.GREEN
-                    LightState.GREEN -> LightState.YELLOW
-                    LightState.YELLOW -> LightState.RED
-                }
+                val expected =
+                    when (state) {
+                        LightState.RED -> LightState.GREEN
+                        LightState.GREEN -> LightState.YELLOW
+                        LightState.YELLOW -> LightState.RED
+                    }
                 state.next() shouldBe expected
             }
         }
@@ -290,22 +297,24 @@ class TrafficLightControllerTest : DescribeSpec({
             checkAll(Arb.int(1..10)) { cycles ->
                 val scheduler = FakeScheduler()
                 val states = mutableListOf<LightState>()
-                val ctrl = TrafficLightController(
-                    preferences = TimingPreferences(),
-                    scheduler = scheduler,
-                ) { state, _ -> states.add(state) }
+                val ctrl =
+                    TrafficLightController(
+                        preferences = TimingPreferences(),
+                        scheduler = scheduler,
+                    ) { state, _ -> states.add(state) }
                 ctrl.startCycle()
                 repeat(cycles * 3) { scheduler.runNext() }
                 // Skip the initial RED (AnimationType.NONE) and verify pattern repeats
                 val transitions = states.drop(1) // drop the initial RED
                 transitions.chunked(3).forEach { chunk ->
-                    chunk shouldContainExactly expectedPattern.drop(1).take(chunk.size)
-                        .let {
-                            // re-derive the expected sub-sequence starting from GREEN
-                            chunk.mapIndexed { idx, _ ->
-                                expectedPattern[(1 + idx) % 3]
+                    chunk shouldContainExactly
+                        expectedPattern.drop(1).take(chunk.size)
+                            .let {
+                                // re-derive the expected sub-sequence starting from GREEN
+                                chunk.mapIndexed { idx, _ ->
+                                    expectedPattern[(1 + idx) % 3]
+                                }
                             }
-                        }
                 }
             }
         }
@@ -315,10 +324,11 @@ class TrafficLightControllerTest : DescribeSpec({
         it("should always have exactly one pending task after any number of transitions") {
             checkAll(Arb.int(0..20)) { steps ->
                 val scheduler = FakeScheduler()
-                val ctrl = TrafficLightController(
-                    preferences = TimingPreferences(),
-                    scheduler = scheduler,
-                ) { _, _ -> }
+                val ctrl =
+                    TrafficLightController(
+                        preferences = TimingPreferences(),
+                        scheduler = scheduler,
+                    ) { _, _ -> }
                 ctrl.startCycle()
                 repeat(steps) { scheduler.runNext() }
                 scheduler.pendingCount shouldBe 1
@@ -330,10 +340,11 @@ class TrafficLightControllerTest : DescribeSpec({
         it("should always have zero pending tasks after stopCycle regardless of when it is called") {
             checkAll(Arb.int(0..15)) { steps ->
                 val scheduler = FakeScheduler()
-                val ctrl = TrafficLightController(
-                    preferences = TimingPreferences(),
-                    scheduler = scheduler,
-                ) { _, _ -> }
+                val ctrl =
+                    TrafficLightController(
+                        preferences = TimingPreferences(),
+                        scheduler = scheduler,
+                    ) { _, _ -> }
                 ctrl.startCycle()
                 repeat(steps) { scheduler.runNext() }
                 ctrl.stopCycle()

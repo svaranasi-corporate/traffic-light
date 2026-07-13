@@ -83,11 +83,12 @@ class TrafficLightController(
     // ── private helpers ─────────────────────────────────────────────────────
 
     /** Returns the configured duration in milliseconds for [state]. */
-    private fun durationMsFor(state: LightState): Long = when (state) {
-        LightState.RED -> preferences.redDurationSeconds * 1_000L
-        LightState.GREEN -> preferences.greenDurationSeconds * 1_000L
-        LightState.YELLOW -> preferences.yellowDurationSeconds * 1_000L
-    }
+    private fun durationMsFor(state: LightState): Long =
+        when (state) {
+            LightState.RED -> preferences.redDurationSeconds * 1_000L
+            LightState.GREEN -> preferences.greenDurationSeconds * 1_000L
+            LightState.YELLOW -> preferences.yellowDurationSeconds * 1_000L
+        }
 
     /**
      * Schedules the transition that will fire after the current state's duration elapses.

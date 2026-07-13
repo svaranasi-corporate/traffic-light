@@ -14,9 +14,8 @@ import android.content.SharedPreferences
  * The secondary constructor (taking a [Context]) is the production entry point.
  */
 class PreferencesRepository(private val prefs: SharedPreferences) {
-
     constructor(context: Context) : this(
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE),
     )
 
     /**

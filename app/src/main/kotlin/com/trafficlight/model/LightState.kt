@@ -11,9 +11,10 @@ enum class LightState {
     ;
 
     /** Returns the next state in the fixed cycle sequence. Pure function, no side effects. */
-    fun next(): LightState = when (this) {
-        RED -> GREEN
-        GREEN -> YELLOW
-        YELLOW -> RED
-    }
+    fun next(): LightState =
+        when (this) {
+            RED -> GREEN
+            GREEN -> YELLOW
+            YELLOW -> RED
+        }
 }

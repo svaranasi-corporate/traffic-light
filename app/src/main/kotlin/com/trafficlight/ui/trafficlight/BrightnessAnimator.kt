@@ -26,7 +26,6 @@ private const val FADE_DURATION_MS = 150L
  * they can be exercised directly in JVM unit / property tests.
  */
 object FadeInterpolator {
-
     /**
      * Decelerate curve — simulates a cooling filament (FR-5.1).
      *
@@ -115,7 +114,6 @@ object FadeInterpolator {
  * @param initialState The light that should start at full brightness.
  */
 class BrightnessAnimator(initialState: LightState = LightState.RED) {
-
     /** Mutable backing store for the current per-light brightness snapshot. */
     private val _brightnessState = mutableStateOf(defaultBrightnesses(initialState))
 
@@ -168,11 +166,12 @@ class BrightnessAnimator(initialState: LightState = LightState.RED) {
         }
 
         // Phase 1: fade out the outgoing light, then chain phase 2.
-        activeAnimator = buildFadeOutAnimator(outgoing) {
-            // Phase 2: fade in the incoming light.
-            activeAnimator = buildFadeInAnimator(incoming)
-            activeAnimator?.start()
-        }
+        activeAnimator =
+            buildFadeOutAnimator(outgoing) {
+                // Phase 2: fade in the incoming light.
+                activeAnimator = buildFadeInAnimator(incoming)
+                activeAnimator?.start()
+            }
         activeAnimator?.start()
     }
 

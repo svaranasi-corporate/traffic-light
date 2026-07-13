@@ -1,9 +1,9 @@
 package com.trafficlight.data
 
 import io.kotest.core.spec.style.DescribeSpec
-import io.kotest.matchers.shouldBe
 import io.kotest.matchers.comparables.shouldBeGreaterThanOrEqualTo
 import io.kotest.matchers.comparables.shouldBeLessThanOrEqualTo
+import io.kotest.matchers.shouldBe
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.int
 import io.kotest.property.checkAll
@@ -111,10 +111,11 @@ class TimingPreferencesTest : DescribeSpec({
                 Arb.int(-1000..1000),
                 Arb.int(-1000..1000),
             ) { red, green ->
-                val prefs = TimingPreferences(
-                    redDurationSeconds = red,
-                    greenDurationSeconds = green,
-                )
+                val prefs =
+                    TimingPreferences(
+                        redDurationSeconds = red,
+                        greenDurationSeconds = green,
+                    )
                 prefs.validateAndClamp() shouldBe prefs.validateAndClamp().validateAndClamp()
             }
         }
@@ -130,9 +131,10 @@ class TimingPreferencesTest : DescribeSpec({
     describe("validateAndClamp — output always within valid ranges (property test)") {
         it("should always clamp red/green to 3–60 for any arbitrary input") {
             checkAll(Arb.int(-10_000..10_000)) { value ->
-                val clamped = TimingPreferences(redDurationSeconds = value)
-                    .validateAndClamp()
-                    .redDurationSeconds
+                val clamped =
+                    TimingPreferences(redDurationSeconds = value)
+                        .validateAndClamp()
+                        .redDurationSeconds
                 clamped shouldBeGreaterThanOrEqualTo TimingPreferences.RED_GREEN_MIN
                 clamped shouldBeLessThanOrEqualTo TimingPreferences.RED_GREEN_MAX
             }
@@ -140,9 +142,10 @@ class TimingPreferencesTest : DescribeSpec({
 
         it("should always clamp yellow to 1–10 for any arbitrary input") {
             checkAll(Arb.int(-10_000..10_000)) { value ->
-                val clamped = TimingPreferences(yellowDurationSeconds = value)
-                    .validateAndClamp()
-                    .yellowDurationSeconds
+                val clamped =
+                    TimingPreferences(yellowDurationSeconds = value)
+                        .validateAndClamp()
+                        .yellowDurationSeconds
                 clamped shouldBeGreaterThanOrEqualTo TimingPreferences.YELLOW_MIN
                 clamped shouldBeLessThanOrEqualTo TimingPreferences.YELLOW_MAX
             }
