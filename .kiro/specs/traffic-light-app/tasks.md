@@ -43,13 +43,13 @@ Implement core data types and local persistence layer.
 Wire up single-Activity Compose navigation between all three screens with placeholder composables.
 
 ### Acceptance Criteria
-- [ ] Single `MainActivity` with `NavHost` containing three routes: `menu`, `trafficlight`, `settings`
-- [ ] "Start" on MenuScreen navigates to `trafficlight` route (FR-1.3)
-- [ ] "Options" on MenuScreen navigates to `settings` route (FR-1.4)
-- [ ] Back from SettingsScreen returns to MenuScreen (FR-6.7)
-- [ ] Back from TrafficLightScreen returns to MenuScreen (FR-8.3)
-- [ ] No duplicate screen instances on rapid taps
-- [ ] App launches and shows MenuScreen as the first screen (FR-1.1)
+- [x] Single `MainActivity` with `NavHost` containing three routes: `menu`, `trafficlight`, `settings`
+- [x] "Start" on MenuScreen navigates to `trafficlight` route (FR-1.3)
+- [x] "Options" on MenuScreen navigates to `settings` route (FR-1.4)
+- [x] Back from SettingsScreen returns to MenuScreen (FR-6.7)
+- [x] Back from TrafficLightScreen returns to MenuScreen (FR-8.3)
+- [x] No duplicate screen instances on rapid taps
+- [x] App launches and shows MenuScreen as the first screen (FR-1.1)
 
 ---
 
