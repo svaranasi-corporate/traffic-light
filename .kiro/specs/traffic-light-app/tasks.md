@@ -144,15 +144,15 @@ Implement incandescent-style brightness animations using `ValueAnimator`.
 Assemble `TrafficLightScreen` integrating rendering, animation, controller, and lifecycle management.
 
 ### Acceptance Criteria
-- [ ] Immersive sticky mode entered on screen open — status bar and nav bar hidden (FR-2.1)
-- [ ] Portrait orientation locked while screen is active (FR-2.2)
-- [ ] `FLAG_KEEP_SCREEN_ON` set on entry; cleared on exit (FR-2.3, UC-3 step 4)
-- [ ] Timing preferences loaded from `PreferencesRepository` on screen entry
-- [ ] Controller initialised and cycle started automatically on entry
-- [ ] Back button: `stopCycle()` called → immersive mode exited → screen-keep-on released → navigate to MenuScreen (FR-8.1, FR-8.2, FR-8.3)
-- [ ] `onResume`: if timer was killed while backgrounded, restart cycle from RED (FR-8.4)
-- [ ] `onDestroy`: all timers and animation callbacks cancelled; no memory leaks (FR-8.5)
-- [ ] App does not crash when returning from background (FR-8.5)
+- [x] Immersive sticky mode entered on screen open — status bar and nav bar hidden (FR-2.1)
+- [x] Portrait orientation locked while screen is active (FR-2.2)
+- [x] `FLAG_KEEP_SCREEN_ON` set on entry; cleared on exit (FR-2.3, UC-3 step 4)
+- [x] Timing preferences loaded from `PreferencesRepository` on screen entry
+- [x] Controller initialised and cycle started automatically on entry
+- [x] Back button: `stopCycle()` called → immersive mode exited → screen-keep-on released → navigate to MenuScreen (FR-8.1, FR-8.2, FR-8.3)
+- [x] `onResume`: if timer was killed while backgrounded, restart cycle from RED (FR-8.4)
+- [x] `onDestroy`: all timers and animation callbacks cancelled; no memory leaks (FR-8.5)
+- [x] App does not crash when returning from background (FR-8.5)
 
 ---
 

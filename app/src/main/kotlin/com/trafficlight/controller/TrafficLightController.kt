@@ -44,8 +44,13 @@ class TrafficLightController(
     var currentState: LightState = LightState.RED
         private set
 
-    /** True while the cycle is running; set to false atomically in [stopCycle]. */
-    private var running: Boolean = false
+    /**
+     * True while the cycle is running; set to false in [stopCycle].
+     * Exposed as read-only so the screen can check whether to restart after a
+     * background kill (FR-8.4).
+     */
+    var isRunning: Boolean = false
+        private set
 
     /** Token returned by the last [Scheduler.schedule] call; used to cancel on [stopCycle]. */
     private var pendingToken: Any? = null
@@ -58,7 +63,7 @@ class TrafficLightController(
      */
     fun startCycle() {
         stopCycle()
-        running = true
+        isRunning = true
         currentState = LightState.RED
         onStateChanged(currentState, AnimationType.NONE)
         scheduleNext()
@@ -70,7 +75,7 @@ class TrafficLightController(
      * this method returns.
      */
     fun stopCycle() {
-        running = false
+        isRunning = false
         pendingToken?.let { scheduler.cancel(it) }
         pendingToken = null
     }
@@ -89,20 +94,13 @@ class TrafficLightController(
      * The token is saved so it can be cancelled by [stopCycle].
      */
     private fun scheduleNext() {
-        if (!running) return
+        if (!isRunning) return
         val delayMs = durationMsFor(currentState)
         pendingToken = scheduler.schedule(delayMs) { onPhaseComplete() }
     }
 
-    /**
-     * Invoked by the scheduler when the current phase duration has elapsed.
-     * Advances the state machine and notifies the listener, then schedules the next phase.
-     *
-     * The [running] guard ensures this is a no-op if [stopCycle] was called between the
-     * time the callback was scheduled and the time it fires.
-     */
     private fun onPhaseComplete() {
-        if (!running) return
+        if (!isRunning) return
         currentState = currentState.next()
         onStateChanged(currentState, AnimationType.FADE_IN)
         scheduleNext()
