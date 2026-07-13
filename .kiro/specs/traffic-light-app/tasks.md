@@ -109,16 +109,16 @@ Implement the state machine and timing logic that drives the light cycle.
 Implement the custom Canvas composable that draws the housing and three light circles.
 
 ### Acceptance Criteria
-- [ ] Goldenrod rounded rectangle housing centered horizontally (FR-2.6)
-- [ ] Three circles stacked vertically: red (top), yellow (middle), green (bottom) (FR-2.4)
-- [ ] Circles evenly spaced within the housing
-- [ ] Active light rendered at brightness 1.0; inactive lights at 0.15 (FR-2.5)
-- [ ] Color rendered as `blend(#2A2A2A, activeColor, brightness)` per ui-guidelines.md
-- [ ] Each light circle has a visor (cowl/hood) rendered above it — a curved shade shape drawn programmatically using Canvas
-- [ ] When a light is active, the underside of its visor shows a reflected glow blended from the active light's color at reduced opacity (simulating light bouncing off the shade)
-- [ ] When a light is inactive, the visor underside shows no glow
-- [ ] No bitmaps — all drawing programmatic using Canvas
-- [ ] Housing and circles scale proportionally across different screen sizes
+- [x] Goldenrod rounded rectangle housing centered horizontally (FR-2.6)
+- [x] Three circles stacked vertically: red (top), yellow (middle), green (bottom) (FR-2.4)
+- [x] Circles evenly spaced within the housing
+- [x] Active light rendered at brightness 1.0; inactive lights at 0.15 (FR-2.5)
+- [x] Color rendered as `blend(#2A2A2A, activeColor, brightness)` per ui-guidelines.md
+- [x] Each light circle has a visor (cowl/hood) rendered above it — a curved shade shape drawn programmatically using Canvas
+- [x] When a light is active, the underside of its visor shows a reflected glow blended from the active light's color at reduced opacity (simulating light bouncing off the shade)
+- [x] When a light is inactive, the visor underside shows no glow
+- [x] No bitmaps — all drawing programmatic using Canvas
+- [x] Housing and circles scale proportionally across different screen sizes
 
 ---
 
