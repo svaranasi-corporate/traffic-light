@@ -73,13 +73,13 @@ Implement the `MenuScreen` composable with branding and navigation buttons.
 Implement the `SettingsScreen` composable with per-phase duration sliders.
 
 ### Acceptance Criteria
-- [ ] Material 3 slider for RED duration, range 3–60s (FR-6.1)
-- [ ] Material 3 slider for GREEN duration, range 3–60s (FR-6.2)
-- [ ] Material 3 slider for YELLOW duration, range 1–10s (FR-6.3)
-- [ ] Current numeric value displayed beside each slider (FR-6.4)
-- [ ] Each slider change immediately persisted via `PreferencesRepository` (FR-6.5)
-- [ ] "Reset to Defaults" button restores all three defaults (FR-6.6)
-- [ ] Material 3 top app bar with back arrow; back returns to MenuScreen (FR-6.7)
+- [x] Material 3 slider for RED duration, range 3–60s (FR-6.1)
+- [x] Material 3 slider for GREEN duration, range 3–60s (FR-6.2)
+- [x] Material 3 slider for YELLOW duration, range 1–10s (FR-6.3)
+- [x] Current numeric value displayed beside each slider (FR-6.4)
+- [x] Each slider change immediately persisted via `PreferencesRepository` (FR-6.5)
+- [x] "Reset to Defaults" button restores all three defaults (FR-6.6)
+- [x] Material 3 top app bar with back arrow; back returns to MenuScreen (FR-6.7)
 
 ---
 

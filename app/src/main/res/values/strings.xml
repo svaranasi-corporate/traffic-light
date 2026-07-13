@@ -3,4 +3,13 @@
     <string name="app_name">Traffic Light</string>
     <string name="menu_start">Start</string>
     <string name="menu_options">Options</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_red_label">Red duration</string>
+    <string name="settings_green_label">Green duration</string>
+    <string name="settings_yellow_label">Yellow duration</string>
+    <string name="settings_seconds_suffix">s</string>
+    <string name="settings_reset_defaults">Reset to Defaults</string>
+    <string name="settings_back">Back</string>
 </resources>
