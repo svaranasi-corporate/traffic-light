@@ -449,6 +449,54 @@ END PROCEDURE
 **Preconditions:** TrafficLightScreen is current; controller exists
 **Postconditions:** All timers cancelled; system bars restored; MenuScreen displayed; no memory leaks
 
+## Component 7: HdrCapabilityProvider
+
+**Purpose**: Detects HDR display capability at runtime and provides a brightness headroom multiplier to the rendering pipeline.
+
+```pascal
+INTERFACE HdrCapabilityProvider
+  FUNCTION isHdrAvailable(display: Display): Boolean
+    // Check Display.isHdrSdrRatioAvailable() (API 34+)
+  END FUNCTION
+
+  FUNCTION getHeadroomMultiplier(display: Display): Float
+    // Returns 2.0 if HDR available, 1.0 otherwise
+  END FUNCTION
+
+  PROCEDURE configureWindow(window: Window, hdrAvailable: Boolean)
+    // Set COLOR_MODE_HDR on the window when supported
+  END PROCEDURE
+END INTERFACE
+```
+
+**Responsibilities**:
+- Query display HDR capability via `Display.isHdrSdrRatioAvailable()`
+- Return a fixed 2.0× multiplier on HDR displays, 1.0× on SDR displays
+- Configure window color mode to HDR when supported
+- Gracefully degrade on API 33 devices (no HDR APIs available → always return 1.0)
+
+### HDR Rendering Pipeline Changes
+
+The rendering pipeline in `TrafficLightComposable` is modified as follows:
+
+1. `HdrCapabilityProvider.getHeadroomMultiplier()` is queried once when the TrafficLightScreen opens
+2. The multiplier is passed to `drawIncandescentGlow()` and applied to:
+   - The radial gradient color stops (center, mid, edge) — values scaled into extended sRGB (e.g., red 1.0 × 2.0 = 2.0)
+   - The outer glow halo alpha/color values
+3. Colors are constructed in `ColorSpace.Named.EXTENDED_SRGB` when headroom > 1.0
+4. On SDR devices (multiplier = 1.0), all colors remain in standard sRGB — zero visual change
+
+```pascal
+ALGORITHM applyHdrHeadroom(color, headroom)
+INPUT: color (r, g, b, a), headroom (Float)
+OUTPUT: extended-range color
+
+BEGIN
+  IF headroom <= 1.0 THEN RETURN color END IF
+  RETURN Color(r * headroom, g * headroom, b * headroom, a, EXTENDED_SRGB)
+END
+```
+
 ## Error Handling
 
 ### Timer Interruption (App Backgrounded)
@@ -462,3 +510,7 @@ END PROCEDURE
 ### Render Failure
 **Condition**: Custom view fails to draw
 **Recovery**: Fall back to simple colored backgrounds; automatic on next draw cycle.
+
+### HDR Unavailable
+**Condition**: Device does not support HDR or runs API < 34
+**Recovery**: Headroom multiplier defaults to 1.0; rendering is pixel-identical to current SDR behavior. No error surfaced to user.

@@ -184,6 +184,20 @@ All state (timing preferences) is stored locally on the device. The application 
 
 ---
 
+### FR-9: HDR Enhanced Rendering
+
+**FR-9.1** On devices with HDR-capable displays, the system shall render active light glow and outer halo at 2× the SDR brightness (extended-range color values) to produce visually brighter bulbs.
+
+**FR-9.2** The HDR brightness multiplier shall be applied to both the incandescent glow gradient and the outer glow halo.
+
+**FR-9.3** On devices without HDR display capability, the system shall render identically to the current SDR behavior (values clamped to 1.0 by the hardware compositor). No user-visible degradation or error shall occur.
+
+**FR-9.4** HDR capability detection shall be automatic at runtime. No user setting or toggle shall be required.
+
+**FR-9.5** The window color mode shall be set to HDR when the display supports it, and remain in standard mode otherwise.
+
+---
+
 ## 5. Constraints and Assumptions
 
 ### Constraints

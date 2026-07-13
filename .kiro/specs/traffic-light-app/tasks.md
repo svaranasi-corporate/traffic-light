@@ -260,3 +260,36 @@ Add a manual mode that lets the user disable the automatic timer and tap each li
 - [ ] Back button behaviour is unchanged in manual mode: stop, exit immersive, return to Menu
 - [ ] `stopCycle()` on the controller is a no-op (or safe to call) when in manual mode — no crashes
 - [ ] Unit tests: controller does not fire timer callbacks when manual mode is active; tapping each light produces correct state
+
+---
+
+## Task 12: Bugfix — Housing Glow Spill and Visor Shadow
+*Satisfies: bugfix.md §2.1, §2.2*
+
+The active bulb's glow halo and the visor's cast shadow both stop at the bezel edge. They should extend onto the surrounding goldenrod housing.
+
+### Acceptance Criteria
+- [ ] When a bulb is active (brightness > 0.5), a subtle colored tint appears on the goldenrod housing around that module's bezel, intensity proportional to brightness, fading to transparent
+- [ ] The visor's downward shadow extends onto the goldenrod housing above/around the module (not clipped to the lens circle)
+- [ ] Inactive lights (brightness ≤ 0.5) produce no housing tint
+- [ ] Existing module layers (bezel, reflector, Fresnel, glow, highlight) render identically to current behavior
+- [ ] Inter-module spacing and adjacent modules remain unaffected
+- [ ] No regressions in transition animations or brightness range
+
+---
+
+## Task 13: HDR Enhanced Rendering
+*Satisfies: FR-9.1, FR-9.2, FR-9.3, FR-9.4, FR-9.5*
+
+Use HDR extended-range colors to render brighter bulbs on capable displays. Non-HDR devices continue rendering as-is.
+
+### Acceptance Criteria
+- [ ] Runtime HDR capability check using `Display.isHdrSdrRatioAvailable()` (API 34+)
+- [ ] When HDR available: window color mode set to `COLOR_MODE_HDR`; headroom multiplier = 2.0
+- [ ] When HDR unavailable: headroom multiplier = 1.0 (no-op, identical to current rendering)
+- [ ] Incandescent glow gradient color values multiplied by headroom (extended sRGB, values > 1.0)
+- [ ] Outer glow halo color values multiplied by headroom
+- [ ] Non-HDR device renders pixel-identically to current behavior (no visual diff)
+- [ ] No user-facing toggle or setting for HDR — fully automatic
+- [ ] No new dependencies required beyond existing Android SDK (API 33+ min, HDR APIs in API 34)
+- [ ] Unit test: headroom provider returns 1.0 when HDR unsupported, 2.0 when supported
