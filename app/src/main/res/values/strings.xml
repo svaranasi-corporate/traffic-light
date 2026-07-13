@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Traffic Light</string>
+    <string name="menu_start">Start</string>
+    <string name="menu_options">Options</string>
 </resources>
