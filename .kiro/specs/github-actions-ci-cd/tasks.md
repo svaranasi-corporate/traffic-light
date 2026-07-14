@@ -17,8 +17,8 @@ Create two GitHub Actions workflow files for the Traffic Light Android app: a PR
     - Add `./gradlew build` step with `timeout-minutes: 10`
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 2.1, 2.2, 2.3, 2.4, 2.5, 6.1, 6.3, 6.4, 6.5, 7.1, 7.2_
 
-- [ ] 2. Create Release Pipeline
-  - [ ] 2.1 Create `.github/workflows/release.yml`
+- [x] 2. Create Release Pipeline
+  - [x] 2.1 Create `.github/workflows/release.yml`
     - Define `push` trigger on `main` branch only (no `pull_request` triggers)
     - Set `permissions: contents: write` at workflow level for GitHub Release creation
     - Set runner to `ubuntu-latest`
@@ -29,7 +29,7 @@ Create two GitHub Actions workflow files for the Traffic Light Android app: a PR
     - Add GitHub Release publication step using `softprops/action-gh-release@v2` (or equivalent): tag format `YYYYMMDD_<run_number>` (UTC date), attach built APK, auto-generated release notes from commits, mark as non-draft and non-prerelease, release title matches tag name
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 6.2, 6.3, 6.4, 6.5, 7.1, 7.3_
 
-- [ ] 3. Final checkpoint
+- [x] 3. Final checkpoint
   - Ensure both workflow files are syntactically valid YAML, ask the user if questions arise.
 
 ## Notes
