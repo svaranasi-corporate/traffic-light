@@ -32,6 +32,13 @@ Create two GitHub Actions workflow files for the Traffic Light Android app: a PR
 - [x] 3. Final checkpoint
   - Ensure both workflow files are syntactically valid YAML, ask the user if questions arise.
 
+- [ ] 4. Add path filtering to PR Validation Pipeline
+  - [ ] 4.1 Add `paths` filter to the `pull_request` trigger in `pr-validation.yml` so the workflow only runs when app/build-related files change
+    - Include paths: `app/**`, `build.gradle.kts`, `app/build.gradle.kts`, `gradle/**`, `settings.gradle.kts`, `gradle.properties`, `.github/workflows/pr-validation.yml`
+    - Effect: PRs that only change docs (`*.md`, `docs/**`), Kiro config (`.kiro/**`), or other non-build files will skip the Gradle build entirely
+    - The workflow still triggers on the PR (GitHub shows "skipped" status) — it does not block merge
+    - Validate that the existing concurrency and caching configuration remains unchanged
+
 ## Notes
 
 - No property-based tests are applicable — this is infrastructure-as-code (YAML workflow definitions)

@@ -95,3 +95,18 @@ This demonstrated taking a non-trivial infrastructure concern through the full s
 ## Key Takeaway
 
 The same principles — context engineering, constrained agents, structured specs, tool integration, and automation hooks — apply regardless of which AI coding tool you use. The value is in understanding *why* each concept exists, not memorizing tool-specific syntax.
+
+
+## Future Improvements
+
+Remaining tasks already spec'd and ready for AI-driven execution:
+
+**App**
+- Task 10 — Integration and property-based test suite (full cycle timing, settings roundtrip, immersive mode)
+- Task 11 — Manual mode: tap-to-activate lights with auto-cycle disabled
+- Task 12 — Bugfix: housing glow spill and visor shadow extending past bezel
+- Task 13 — HDR enhanced rendering on capable displays (extended-range colors)
+- Task 14 — Modern adaptive launcher icon (fills all launcher masks cleanly)
+
+**CI/CD**
+- Task 4 — Path filtering on PR validation to skip Gradle build for docs-only changes
