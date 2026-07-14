@@ -7,7 +7,7 @@ Create two GitHub Actions workflow files for the Traffic Light Android app: a PR
 ## Tasks
 
 - [ ] 1. Create PR Validation Pipeline
-  - [ ] 1.1 Create `.github/workflows/pr-validation.yml`
+  - [x] 1.1 Create `.github/workflows/pr-validation.yml`
     - Define `pull_request` trigger targeting `main` branch (types: opened, reopened, synchronize)
     - Configure concurrency group keyed to the PR number with `cancel-in-progress: true` to cancel stale runs
     - Set runner to `ubuntu-latest`

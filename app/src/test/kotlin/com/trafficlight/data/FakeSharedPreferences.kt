@@ -48,9 +48,13 @@ class FakeSharedPreferences : SharedPreferences {
         defValue: Boolean,
     ): Boolean = store[key] as? Boolean ?: defValue
 
-    override fun registerOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) = Unit
+    override fun registerOnSharedPreferenceChangeListener(
+        listener: SharedPreferences.OnSharedPreferenceChangeListener,
+    ) = Unit
 
-    override fun unregisterOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) = Unit
+    override fun unregisterOnSharedPreferenceChangeListener(
+        listener: SharedPreferences.OnSharedPreferenceChangeListener,
+    ) = Unit
     // endregion
 
     private class FakeEditor(private val store: MutableMap<String, Any?>) : SharedPreferences.Editor {

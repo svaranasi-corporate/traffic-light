@@ -318,16 +318,17 @@ private fun DrawScope.drawVisor(
     // never touch the yellow housing in the inter-module gap.
     val visorRadius = lensRadius * VISOR_RADIUS_FRACTION
     val visorStrokeWidth = lensRadius * VISOR_STROKE_FRACTION
-    val visorClipPath = Path().apply {
-        addRect(
-            Rect(
-                left = centerX - visorRadius - visorStrokeWidth,
-                top = centerY - visorRadius - visorStrokeWidth,
-                right = centerX + visorRadius + visorStrokeWidth,
-                bottom = centerY,
+    val visorClipPath =
+        Path().apply {
+            addRect(
+                Rect(
+                    left = centerX - visorRadius - visorStrokeWidth,
+                    top = centerY - visorRadius - visorStrokeWidth,
+                    right = centerX + visorRadius + visorStrokeWidth,
+                    bottom = centerY,
+                ),
             )
-        )
-    }
+        }
     clipPath(visorClipPath) {
         drawArc(
             color = Color(0xFF1A1A1A),
@@ -358,16 +359,17 @@ private fun DrawScope.drawVisor(
     // When the bulb is inactive: dark shadow (visor blocks ambient light from above).
     // When the bulb is active: the light bounces off the visor's underside and
     // casts a faint tinted glow back onto the upper portion of the lens.
-    val lensClipPath = Path().apply {
-        addOval(
-            Rect(
-                centerX - lensRadius,
-                centerY - lensRadius,
-                centerX + lensRadius,
-                centerY + lensRadius,
+    val lensClipPath =
+        Path().apply {
+            addOval(
+                Rect(
+                    centerX - lensRadius,
+                    centerY - lensRadius,
+                    centerX + lensRadius,
+                    centerY + lensRadius,
+                ),
             )
-        )
-    }
+        }
     val isActive = brightness > DIM_BRIGHTNESS + 0.05f
     clipPath(lensClipPath) {
         if (isActive) {
@@ -375,22 +377,24 @@ private fun DrawScope.drawVisor(
             val midColor = ACTIVE_COLORS[state]?.second ?: Color.White
             val glowAlpha = (brightness * 0.28f).coerceIn(0f, 0.28f)
             drawRect(
-                brush = Brush.verticalGradient(
-                    colors = listOf(midColor.copy(alpha = glowAlpha), Color.Transparent),
-                    startY = centerY - lensRadius,
-                    endY = centerY - lensRadius * 0.35f,
-                ),
+                brush =
+                    Brush.verticalGradient(
+                        colors = listOf(midColor.copy(alpha = glowAlpha), Color.Transparent),
+                        startY = centerY - lensRadius,
+                        endY = centerY - lensRadius * 0.35f,
+                    ),
                 topLeft = Offset(centerX - lensRadius, centerY - lensRadius),
                 size = Size(lensRadius * 2f, lensRadius * 0.7f),
             )
         } else {
             // Shadow: visor interior blocks light from above
             drawRect(
-                brush = Brush.verticalGradient(
-                    colors = listOf(Color(0xBB000000), Color.Transparent),
-                    startY = centerY - lensRadius,
-                    endY = centerY - lensRadius * 0.45f,
-                ),
+                brush =
+                    Brush.verticalGradient(
+                        colors = listOf(Color(0xBB000000), Color.Transparent),
+                        startY = centerY - lensRadius,
+                        endY = centerY - lensRadius * 0.45f,
+                    ),
                 topLeft = Offset(centerX - lensRadius, centerY - lensRadius),
                 size = Size(lensRadius * 2f, lensRadius * 0.6f),
             )
