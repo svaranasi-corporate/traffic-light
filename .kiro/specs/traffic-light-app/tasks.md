@@ -293,3 +293,21 @@ Use HDR extended-range colors to render brighter bulbs on capable displays. Non-
 - [ ] No user-facing toggle or setting for HDR — fully automatic
 - [ ] No new dependencies required beyond existing Android SDK (API 33+ min, HDR APIs in API 34)
 - [ ] Unit test: headroom provider returns 1.0 when HDR unsupported, 2.0 when supported
+
+---
+
+## Task 14: Modern Adaptive Launcher Icon
+*Improvement — universal launcher compatibility*
+
+Redesign the adaptive launcher icon so it fills the full icon canvas, eliminates black borders on all launcher shapes (Pixel circle, Samsung squircle, stock rounded square), and provides clear visual separation between the yellow bulb and the goldenrod housing.
+
+### Acceptance Criteria
+- [ ] Background layer (`ic_launcher_background.xml`) fills the entire 108dp canvas with a darker goldenrod tone (e.g. `#B8860B`) instead of near-black — any launcher mask crops into the housing color, not black
+- [ ] Foreground layer (`ic_launcher_foreground.xml`) housing extends to fill most of the 72dp safe zone, minimizing dead space
+- [ ] Each of the three bulbs is surrounded by a thick dark bezel ring (`#222222`–`#333333`, ~3dp stroke) to visually separate them from the housing
+- [ ] Yellow/amber bulb color changed to a brighter vivid yellow (`#FFD600` or similar) so it clearly contrasts against the goldenrod housing
+- [ ] Red bulb remains `#FF0000` (or slightly brighter); green bulb remains `#00CC00` (or slightly brighter)
+- [ ] Icon renders correctly across all common adaptive icon masks: circle (Pixel), squircle (Samsung OneUI), rounded square (stock AOSP), teardrop
+- [ ] `ic_launcher_round.xml` updated to reference the same adaptive icon layers
+- [ ] No bitmaps — icon remains fully vector-based (`VectorDrawable`)
+- [ ] Icon is legible and recognizable at small sizes (48dp app grid) and large sizes (launcher widget)
