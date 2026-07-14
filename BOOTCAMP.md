@@ -1,8 +1,15 @@
 # AI-Assisted Development Bootcamp — Capstone Summary
 
-## Project
+## Project - Traffic Light Simulator
 
-Traffic Light Simulator — an Android app (Kotlin/Jetpack Compose) used as a vehicle to demonstrate AI-augmented development concepts across 7 bootcamp sessions.
+### Why
+I have for a long time wanted to build a traffic light simulator for my toddler who loves cars. When we plays "cars cars" he's enjoyed stopping for a "red light" and taking off on green. The other apps on the Play Store were found to be too unnecessarily complex and/or cluttered with ads. This is a simple no-ad take on the concept for self-play.
+
+### What
+
+An Android app (Kotlin/Jetpack Compose) used as a vehicle to demonstrate AI-augmented development concepts across 7 bootcamp sessions.
+
+A realistic traffic light simulator with configurable phase timings. Three screens: a menu to launch or configure, a settings screen with sliders for red/yellow/green durations, and a full-screen immersive traffic light that cycles through phases with incandescent-style fade animations.
 
 ## AI Capabilities Demonstrated
 
