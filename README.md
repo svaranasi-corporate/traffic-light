@@ -1,6 +1,6 @@
 # Traffic Light App
 
-A full-screen Android app that simulates a realistic traffic light for kids playing with ride-on toys or scale model vehicles. Three lights cycle continuously through red, green, and yellow. Timing for each phase is configurable via a settings screen.
+A full-screen Android app that simulates a semi-realistic traffic light for kids playing with ride-on toys or scale model vehicles. Three lights cycle continuously through red, green, and yellow. Timing for each phase is configurable via a settings screen.
 
 The signal rendering uses layered Canvas drawing (housing, visors, bezels, Fresnel lenses, glass highlights) to emulate a physical North American signal head — no bitmaps, no flat icons.
 

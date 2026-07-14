@@ -7,9 +7,15 @@ I have for a long time wanted to build a traffic light simulator for my toddler 
 
 ### What
 
-An Android app (Kotlin/Jetpack Compose) used as a vehicle to demonstrate AI-augmented development concepts across 7 bootcamp sessions.
+An Android app (Kotlin/Jetpack Compose) that attempts to demonstrate as many Slalom AI Bootcamp concepts as possible across the seven sessions.
 
-A realistic traffic light simulator with configurable phase timings. Three screens: a menu to launch or configure, a settings screen with sliders for red/yellow/green durations, and a full-screen immersive traffic light that cycles through phases with incandescent-style fade animations.
+The app is a semi-realistic traffic light simulator with configurable phase timings. Three screens: a menu to launch or configure, a settings screen with sliders for red/yellow/green durations, and a full-screen immersive traffic light that cycles through phases with incandescent-style fade animations.
+
+Screenshots:
+
+<img src="screens/main-screen.jpg" alt="Main menu screen" width="250" /> <img src="screens/options-screen.jpg" alt="Options/settings screen" width="250" />
+<br>
+<img src="screens/red-screen.jpg" alt="Red light active" width="250" /> <img src="screens/yellow-screen.jpg" alt="Yellow light active" width="250" /> <img src="screens/green-screen.jpg" alt="Green light active" width="250" />
 
 ## AI Capabilities Demonstrated
 
