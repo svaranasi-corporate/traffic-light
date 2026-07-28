@@ -87,6 +87,40 @@ stateDiagram-v2
     Yellow --> [*]: User presses Back
 ```
 
+### Manual Mode Flow
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant T as TrafficLightScreen
+    participant C as TrafficLightController
+    participant P as PreferencesRepository
+
+    U->>T: Screen opens
+    T->>P: Load preferences
+    P-->>T: {manualMode: true, ...}
+    T->>C: initialize(preferences)
+    Note over C: manualMode=true → no timer started
+    C-->>T: onLightStateChanged(RED, NONE)
+    T->>T: Render RED active, others dim
+
+    U->>T: Tap green light area
+    T->>C: activateLight(GREEN)
+    C-->>T: onLightStateChanged(RED, FADE_OUT)
+    C-->>T: onLightStateChanged(GREEN, FADE_IN)
+    T->>T: Animate transition
+
+    U->>T: Tap yellow light area
+    T->>C: activateLight(YELLOW)
+    C-->>T: onLightStateChanged(GREEN, FADE_OUT)
+    C-->>T: onLightStateChanged(YELLOW, FADE_IN)
+    T->>T: Animate transition
+
+    U->>T: Press Back
+    T->>C: stopCycle() (no-op in manual mode)
+    T->>T: Exit immersive, navigate to Menu
+```
+
 ## Components and Interfaces
 
 ### Component 1: MenuScreen
@@ -112,18 +146,25 @@ END INTERFACE
 
 ### Component 2: TrafficLightScreen
 
-**Purpose**: Full-screen display showing the traffic light with animated transitions.
+**Purpose**: Full-screen display showing the traffic light with animated transitions. Supports both automatic cycling and manual tap-to-activate modes.
 
 ```pascal
 INTERFACE TrafficLightScreen
   PROCEDURE onCreate()
     // Enter immersive full-screen mode
     // Load preferences
-    // Initialize controller and start cycle
+    // Initialize controller
+    // If automatic mode: start cycle
+    // If manual mode: display RED active, await taps
   END PROCEDURE
   
   PROCEDURE onLightStateChanged(newState: LightState, animation: AnimationType)
     // Update the rendered light display with fade animation
+  END PROCEDURE
+  
+  PROCEDURE onLightTapped(light: LightState)
+    // Manual mode only: forward tap to controller.activateLight()
+    // Automatic mode: no-op (taps ignored)
   END PROCEDURE
   
   PROCEDURE onBackPressed()
@@ -142,27 +183,41 @@ END INTERFACE
 - Animate transitions with incandescent-style fade out/in
 - Hide system bars for immersive full-screen experience
 - Handle back button to stop and return to menu
+- In manual mode: register tap targets on each light area and forward taps to controller
+- In automatic mode: ignore taps on lights
 
 ### Component 3: TrafficLightController
 
-**Purpose**: Manages the state machine logic for light transitions and timing.
+**Purpose**: Manages the state machine logic for light transitions and timing. Supports both automatic cycle mode and manual (user-tap) mode.
 
 ```pascal
 INTERFACE TrafficLightController
   PROCEDURE initialize(preferences: TimingPreferences)
     // Set up timing values and start from RED state
+    // If preferences.manualMode is true, do not start timer
   END PROCEDURE
   
   PROCEDURE startCycle()
-    // Begin continuous cycling from current state
+    // Begin continuous cycling from current state (automatic mode only)
   END PROCEDURE
   
   PROCEDURE stopCycle()
     // Cancel all timers, reset state
+    // Safe to call in manual mode (no-op)
+  END PROCEDURE
+  
+  PROCEDURE activateLight(state: LightState)
+    // Manual mode only: activate the given light, deactivate others
+    // If state is already active, no-op
+    // Triggers onLightStateChanged with FADE_OUT for previous and FADE_IN for new
   END PROCEDURE
   
   FUNCTION getCurrentState(): LightState
     // Return current light state
+  END FUNCTION
+  
+  FUNCTION isManualMode(): Boolean
+    // Return whether controller is operating in manual mode
   END FUNCTION
   
   EVENT onLightStateChanged(newState: LightState, animation: AnimationType)
@@ -172,10 +227,12 @@ END INTERFACE
 ```
 
 **Responsibilities**:
-- Implement state machine: RED → GREEN → YELLOW → RED (continuous)
+- Implement state machine: RED → GREEN → YELLOW → RED (continuous) in automatic mode
+- In manual mode, wait for explicit `activateLight()` calls instead of timer-driven transitions
 - Manage transition timing based on user preferences
-- Coordinate with TimerEngine for accurate countdowns
+- Coordinate with TimerEngine for accurate countdowns (automatic mode only)
 - Notify listeners of state changes with animation type
+- `stopCycle()` is safe to call in either mode
 
 ### Component 4: TimerEngine
 
@@ -204,7 +261,7 @@ END INTERFACE
 
 ### Component 5: SettingsScreen
 
-**Purpose**: Allow users to adjust timing for each light phase.
+**Purpose**: Allow users to adjust timing for each light phase and toggle manual mode.
 
 ```pascal
 INTERFACE SettingsScreen
@@ -224,41 +281,46 @@ INTERFACE SettingsScreen
     // Update yellow duration preference
   END PROCEDURE
   
+  PROCEDURE onManualModeChanged(enabled: Boolean)
+    // Update manual mode preference
+  END PROCEDURE
+  
   PROCEDURE onResetDefaults()
-    // Reset all values to defaults
+    // Reset all values to defaults (including manual mode → false)
   END PROCEDURE
 END INTERFACE
 ```
 
 **Responsibilities**:
 - Display Material Design sliders for each light duration
+- Display a Material 3 Switch for manual mode toggle
 - Show current values as labels next to sliders
-- Save preferences immediately on change
+- Save preferences immediately on change (sliders and toggle)
 - Provide "Reset to Defaults" option
 
 ### Component 6: PreferencesRepository
 
-**Purpose**: Abstraction layer over SharedPreferences for reading/writing timing settings.
+**Purpose**: Abstraction layer over SharedPreferences for reading/writing timing settings and manual mode preference.
 
 ```pascal
 INTERFACE PreferencesRepository
   FUNCTION getTimingPreferences(): TimingPreferences
-    // Read saved or default timing values
+    // Read saved or default timing values (including manualMode)
   END FUNCTION
   
   PROCEDURE saveTimingPreferences(prefs: TimingPreferences)
-    // Persist timing values locally
+    // Persist timing values and manual mode locally
   END PROCEDURE
   
   PROCEDURE resetToDefaults()
-    // Clear saved values, revert to defaults
+    // Clear saved values, revert to defaults (manualMode → false)
   END PROCEDURE
 END INTERFACE
 ```
 
 **Responsibilities**:
 - Read/write to Android SharedPreferences
-- Provide default values when no saved preferences exist
+- Provide default values when no saved preferences exist (manualMode defaults to false)
 - Validate values are within acceptable ranges
 
 ## Data Models
@@ -290,6 +352,7 @@ STRUCTURE TimingPreferences
   redDurationSeconds: Integer      // Default: 10, Range: 3-60
   greenDurationSeconds: Integer    // Default: 20, Range: 3-60
   yellowDurationSeconds: Integer   // Default: 3,  Range: 1-10
+  manualMode: Boolean              // Default: false
 END STRUCTURE
 ```
 
@@ -354,6 +417,29 @@ END
 ```
 
 **Postconditions:** Pure function, deterministic, no side effects
+
+### Manual Light Activation
+
+```pascal
+ALGORITHM activateLight(targetState, currentState, isManualMode)
+INPUT: targetState (LightState), currentState (LightState), isManualMode (Boolean)
+OUTPUT: state change notification or no-op
+
+BEGIN
+  IF NOT isManualMode THEN RETURN END IF
+  IF targetState = currentState THEN RETURN END IF
+  
+  previousState ← currentState
+  currentState ← targetState
+  
+  NOTIFY onLightStateChanged(previousState, FADE_OUT)
+  WAIT 300 milliseconds
+  NOTIFY onLightStateChanged(targetState, FADE_IN)
+END
+```
+
+**Preconditions:** isManualMode is true; targetState is a valid LightState
+**Postconditions:** Exactly one light is active; transition animation plays; no timer started
 
 ### Fade Animation
 

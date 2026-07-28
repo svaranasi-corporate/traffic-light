@@ -16,6 +16,7 @@ The system is a standalone Android application distributed as an APK. It simulat
 | Phase | One complete period of a single light state (e.g., the RED phase) |
 | Cycle | One complete pass through all three phases: RED → GREEN → YELLOW |
 | Housing | The enclosure graphic surrounding the three light circles |
+| Manual mode | An operational mode where the automatic timer is disabled and the user directly taps lights to activate them |
 
 ---
 
@@ -181,6 +182,57 @@ All state (timing preferences) is stored locally on the device. The application 
 5. System navigates to Menu Screen
 
 **Postcondition:** No timers, callbacks, or memory references remain from the Traffic Light Screen.
+
+---
+
+### UC-4: Use Manual Mode
+
+**Actor:** User (adult)
+**Precondition:** Menu Screen is displayed.
+
+1. User taps "Options"
+2. System navigates to Settings Screen
+3. User enables the "Manual mode" toggle
+4. System persists the preference immediately
+5. User taps Back to return to Menu Screen
+6. User taps "Start"
+7. System navigates to Traffic Light Screen in manual mode
+8. System enters full-screen immersive mode; RED light is active (default)
+9. No automatic timer starts
+10. User taps the green light area
+11. System fades out RED and fades in GREEN using the standard transition animation
+12. User taps the yellow light area
+13. System fades out GREEN and fades in YELLOW
+14. User presses the Android back button
+15. System exits immersive mode and returns to Menu Screen
+
+**Postcondition:** No timers or callbacks remain. Manual mode preference is still enabled for next session.
+
+---
+
+### FR-10: Manual Mode
+
+**FR-10.1** The Settings Screen shall provide a toggle control labelled "Manual mode" that allows the user to enable or disable manual control of the traffic light.
+
+**FR-10.2** The manual mode preference shall default to disabled (automatic cycle mode).
+
+**FR-10.3** The system shall persist the manual mode preference immediately when the user changes the toggle, without requiring a separate save action.
+
+**FR-10.4** When manual mode is disabled, the Traffic Light Screen shall operate in automatic cycle mode as defined in FR-3 (no behavioral change).
+
+**FR-10.5** When manual mode is enabled, the system shall not start the automatic timer cycle upon entering the Traffic Light Screen.
+
+**FR-10.6** When manual mode is enabled, each of the three light areas on the Traffic Light Screen shall be individually tappable by the user.
+
+**FR-10.7** When the user taps a light in manual mode, the system shall activate that light (full brightness) and deactivate the other two lights (dim), using the same fade transition animations defined in FR-5.
+
+**FR-10.8** In manual mode, exactly one light shall be active at any time. Tapping the already-active light shall have no effect.
+
+**FR-10.9** Upon entering the Traffic Light Screen in manual mode, the system shall initialize with the RED light active (consistent with FR-3.1).
+
+**FR-10.10** The back button behavior on the Traffic Light Screen shall be identical in manual mode and automatic mode (FR-8.1, FR-8.2, FR-8.3).
+
+**FR-10.11** Calling `stopCycle()` when in manual mode shall be safe (no-op or graceful) and shall not cause a crash.
 
 ---
 
