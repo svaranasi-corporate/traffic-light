@@ -1,0 +1,6 @@
+---
+inclusion: manual
+description: "Switch to the main branch and pull the latest changes from the remote."
+---
+
+You are helping the user switch back to the main branch and pull the latest remote changes.\n\n## Steps\n\n1. **Check for uncommitted changes** by running `git status --porcelain`.\n   - If there are uncommitted changes, warn the user and ask whether to stash them, discard them, or abort.\n\n2. **Switch to main** by running `git checkout main`.\n\n3. **Pull latest** by running `git pull origin main`.\n\n4. **Report** the current HEAD commit SHA and confirm the branch is now `main` with latest changes.
