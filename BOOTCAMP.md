@@ -1,5 +1,7 @@
 # AI-Assisted Development Bootcamp — Capstone Summary
 
+> **Note:** This project requires **Kiro version 1.0**. If you are still on a 0.x release, please upgrade before proceeding — several features used here (specs, hooks, steering) have breaking changes from the 0.x line.
+
 ## Project - Traffic Light Simulator
 
 ### Why
@@ -59,6 +61,7 @@ Set up two user-triggered hooks in `.kiro/hooks/`:
 
 - **Commit and Push** — Reviews the diff, generates a Conventional Commits message from the branch name, stages, commits, and pushes. One button replaces a 5-step manual workflow.
 - **Refresh to Main** — Checks for uncommitted changes, switches to `main`, and pulls latest. Safely resets the workspace between tasks.
+- **Sync Meeting Notes to Spec** — When a new file lands in `docs/stories/`, prompts the agent to update design, requirements, and tasks docs, keeping the spec in sync with meeting decisions.
 
 These demonstrate event-driven agent actions — repeatable multi-step Git workflows triggered by a single click.
 

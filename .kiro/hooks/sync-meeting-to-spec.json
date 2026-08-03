@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Sync Meeting Notes to Spec",
+      "description": "When a new file is created in docs/stories/, reminds the agent to update functional-requirements.md and design.md in addition to tasks.md to keep all spec documents in sync with meeting decisions.",
+      "trigger": "PostFileCreate",
+      "matcher": "docs/stories/.*[^/]*\\.md$",
+      "action": {
+        "type": "agent",
+        "prompt": "A new meeting notes file was created in docs/stories/. Before adding any tasks to tasks.md, you MUST first:\n\n1. Read the new meeting notes file to understand the requirements discussed.\n2. Update `.kiro/specs/traffic-light-app/functional-requirements.md` — add new FR sections for any new features or behavioral changes described in the notes.\n3. Update `.kiro/specs/traffic-light-app/design.md` — add or modify component interfaces, data models, sequence diagrams, and pseudocode to cover the new requirements.\n4. Only AFTER updating both requirements and design docs, add or update tasks in tasks.md that reference the new FR numbers.\n\nThis ensures the spec documents remain the single source of truth and tasks always trace back to documented requirements and design."
+      },
+      "enabled": true
+    }
+  ]
+}
